@@ -130,7 +130,7 @@ src/
 
 ## License
 
-Original MATLAB code from "Tactical and Strategic Missile Guidance, 7th ed" by Paul Zarchan. No licensing or copyright information is available.
+Original MATLAB code from "Tactical and Strategic Missile Guidance, 7th ed" copyright (c) 2019 Paul Zarchan.
 
 Rust conversion copyright (c) 2026 Stuart Stock, all rights reserved. 
 
