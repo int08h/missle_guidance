@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Rust port of 'Tactical and Strategic Missile Guidance, 7th ed' MATLAB code"
 license = "BSD-2-Clause"
+repository = "https://github.com/int08h/missle_guidance"
 
 [dependencies]
 plotters = "0.3"
