@@ -1,0 +1,85 @@
+clear
+count=0;
+TS=1.;
+RDESKM=10000.;
+TLOFT=0.;
+TFTOT=252.+.223*RDESKM-(5.44E-6)*RDESKM*RDESKM;
+TFTOT=TFTOT+TLOFT;
+A=2.0926E7;
+GM=1.4077E16;
+XLONGFDEG=57.3*RDESKM*3280./A;
+XLONGTDEG=0.;
+XLATTDEG=0.;
+XLATFDEG=0.;
+SWITCH=0;
+T=0.;
+S=0.;
+XLONGF=XLONGFDEG/57.3;
+XLATF=XLATFDEG/57.3;
+XF=A*cos(XLATF)*cos(XLONGF);
+YF=A*cos(XLATF)*sin(XLONGF);
+ZF=0.;
+XLONGT=XLONGTDEG/57.3;
+XLATT=XLATTDEG/57.3;
+XT=A*cos(XLATT)*cos(XLONGT);
+YT=A*cos(XLATT)*sin(XLONGT);
+ZT=0.;
+XTINIT=XT;
+YTINIT=YT;
+ZTINIT=0.;
+RTINIT=sqrt(XTINIT^2+YTINIT^2+ZTINIT^2);
+H=.01;
+ALTTKM=(sqrt(XT^2+YT^2)-A)/3280.;
+TGOLAM=TFTOT-T;
+[VRX,VRY,VRZ]=LAMBERT3D(XT,YT,ZT,TGOLAM,XF,YF,ZF,SWITCH);
+XTD=VRX;
+YTD=VRY;
+ZTD=VRZ;
+VBOT=sqrt(XTD^2+YTD^2)/3280.;
+while ALTTKM>-1
+	XTOLD=XT;
+	YTOLD=YT;
+	XTDOLD=XTD;
+	YTDOLD=YTD;
+	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+         		STEP=2;
+			XT=XT+H*XTD;
+			YT=YT+H*YTD;
+			XTD=XTD+H*XTDD;
+			YTD=YTD+H*YTDD;
+			T=T+H;
+		end;
+		TEMPBOTT=(XT^2+YT^2)^1.5;
+		XTDD=-GM*XT/TEMPBOTT;
+		YTDD=-GM*YT/TEMPBOTT;
+		ALTTKM=(sqrt(XT^2+YT^2)-A)/3280.;
+		FLAG=1;
+	end
+	FLAG=0;
+ 	XT=.5*(XTOLD+XT+H*XTD);
+ 	YT=.5*(YTOLD+YT+H*YTD);
+	XTD=.5*(XTDOLD+XTD+H*XTDD);
+ 	YTD=.5*(YTDOLD+YTD+H*YTDD);
+	S=S+H;
+	if S>=(TS-.0001)
+		S=0.;
+		ALTTKM=(sqrt(XT^2+YT^2)-A)/3280.;
+		DISTRTKNM=distance3dkm(XT,YT,ZT,XTINIT,YTINIT,ZTINIT);
+		count=count+1;
+		ArrayT(count)=T;
+		ArrayDISTRTKNM(count)=DISTRTKNM;
+		ArrayALTTKM(count)=ALTTKM;
+	
+	end
+end
+figure
+plot(ArrayDISTRTKNM,ArrayALTTKM),grid
+xlabel('Downrange (km)')
+ylabel('Altitude (km) ')
+clc
+output=[ArrayT',ArrayDISTRTKNM',ArrayALTTKM'];
+save datfil.txt output -ascii
+disp 'simulation finished'

@@ -1,0 +1,13 @@
+function [XH,XDH]=PROJECTC12L1(TP,TS,XP,XDP,BETA,HP)
+T=0.;
+X=XP;
+XD=XDP;
+H=HP;
+while T<=(TS-.0001)
+	XDD=.0034*32.2*XD*XD*exp(-X/22000.)/(2.*BETA)-32.2;
+	XD=XD+H*XDD;
+	X=X+H*XD;
+	T=T+H;
+end
+XH=X;
+XDH=XD;

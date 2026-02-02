@@ -1,0 +1,401 @@
+clear
+count=0;
+IFILTER=1;
+RDESKM=7000.;
+TF=2000.;
+TFINISH=240.;
+TLOFT=500.;
+TGRAVEND=100.;
+GAMDEGIC=89.8;
+TUPT=20.;
+RDESRKM=560.;
+SWITCH=0;
+PHIS=0.;
+PHIS1=260.;
+ERR=0.;
+TS=1.;
+SIGTHET=.001;
+SIGR=10.*3.28;
+QGRAV=0;
+ORDER =2;
+LEFT=1;
+QBOOST=1;
+QFINISH=1;
+QFIRST=1;
+GAMDEG=GAMDEGIC;
+HINT=.01;
+XH=0.;
+XDH=0.;
+XDDH=0.;
+YH=0.;
+YDH=0.;
+YDDH=0.;
+PHI=zeros([2,2]);
+P=zeros([2,2]);
+Q=zeros([2,2]);
+IDNPZ=eye(2);
+P(1,1)=99999999999.;
+P(2,2)=99999999999.;
+PP(1,1)=99999999999.;
+PP(2,2)=99999999999.;
+PHI(1,1)=1;
+PHI(1,2)=TS;
+PHI(2,2)=1;
+HMAT(1,1)=1.;
+HMAT(1,2)=0.;
+PHIT=PHI';
+HT=HMAT';
+Q(1,1)=PHIS*TS^3/3.;
+Q(1,2)=PHIS*TS^2/2.;
+Q(2,1)=Q(1,2);
+Q(2,2)=PHIS*TS;
+P11=99999999999.;
+P12=0.;
+P13=0.;
+P22=99999999999.;
+P23=0.;
+P33=99999999999.;
+P11P=99999999999.;
+P12P=0.;
+P13P=0.;
+P22P=99999999999.;
+P23P=0.;
+P33P=99999999999.;
+XN=0.;
+T=0.;
+S=0.;
+A=2.0926E7;
+GM=1.4077E16;
+ALTNM=0.;
+ALT=ALTNM*6076.;
+ANGDEG=0.;
+ANG=ANGDEG/57.3;
+XLONGM=ANG;
+X=(A+ALT)*cos(ANG);
+Y=(A+ALT)*sin(ANG);
+ALT=sqrt(X^2+Y^2)-A;
+XFIRST=X;
+YFIRST=Y;
+X1=cos(1.5708-GAMDEG/57.3+ANG);
+Y1=sin(1.5708-GAMDEG/57.3+ANG);
+AXT=0.;
+AYT=0.;
+XLONGTDEG=57.3*RDESKM*3280./A;
+XLONGRDEG=57.3*RDESRKM*3280./A;
+TF=252.+.223*RDESKM-(5.44E-6)*RDESKM*RDESKM;
+TF=TF+TLOFT;
+XLONGT=XLONGTDEG/57.3;
+XLONGR=XLONGRDEG/57.3;
+XF=A*cos(XLONGT);
+YF=A*sin(XLONGT);
+XR=A*cos(XLONGR);
+YR=A*sin(XLONGR);
+AXT=0.;
+AYT=0.;
+Z=0;
+ZF=0;
+ZFIRST=0;
+while ~(ALT<-1 | T>TFINISH)
+	XOLD=X;
+	YOLD=Y;
+	X1OLD=X1;
+	Y1OLD=Y1;
+	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+			STEP=2;
+			X=X+HINT*XD;
+			Y=Y+HINT*YD;
+			X1=X1+HINT*X1D;
+			Y1=Y1+HINT*Y1D;
+			T=T+HINT;
+		end
+		if T<120.
+			WGT=-2622*T+440660.;
+			TRST=725850.;
+		elseif T<240.
+			WGT=-642.*T+168120.;
+			TRST=182250.;
+		else
+			WGT=5500.;
+			TRST=0.;
+		end
+		AT=32.2*TRST/WGT;
+		XD=X1;
+		YD=Y1;
+		VEL=sqrt(XD^2+YD^2);
+		TEMBOT=(X^2+Y^2)^1.5;
+		X1D=-GM*X/TEMBOT+AXT;
+		Y1D=-GM*Y/TEMBOT+AYT;
+		ALT=sqrt(X^2+Y^2)-A;
+		ACCG=sqrt(AXT^2+AYT^2)/32.2;
+		FLAG=1;
+	end
+	FLAG=0;
+	X=(XOLD+X)/2+.5*HINT*XD;
+	Y=(YOLD+Y)/2+.5*HINT*YD;
+	X1=(X1OLD+X1)/2+.5*HINT*X1D;
+	Y1=(Y1OLD+Y1)/2+.5*HINT*Y1D;
+	S=S+HINT;
+	Z=0.;
+	ZF=0.;
+	ZR=0;
+	TGOLAM=TF-T;
+	if (QBOOST==1 && T>TGRAVEND)
+		TGOLAM=TF-T;
+		[VRX,VRY,VRZ]=LAMBERT3D(X,Y,Z,TGOLAM,XF,YF,ZF,SWITCH);
+		DELX=VRX-X1;
+		DELY=VRY-Y1;
+		DEL=sqrt(DELX^2+DELY^2);
+		if (T<240 & DEL>500.)
+			AXT=AT*DELX/DEL;
+			AYT=AT*DELY/DEL;
+		elseif DEL<500.
+			TRST=0.;
+			QBOOST=0;
+			AXT=0.;
+			AYT=0.;
+			X1=VRX;
+			Y1=VRY;
+			X1OLD=X1;
+			Y1OLD=Y1;
+		else
+			QBOOST=0;
+			AXT=0.;
+			AYT=0.;
+        end
+	elseif (T>=TUPT & T<= TGRAVEND & QFIRST==1)
+		QFIRST=0;
+		VEL=sqrt(XD^2+YD^2);
+		X1=VEL*cos(1.5708-GAMDEGIC/57.3+ANG);
+		Y1=VEL*sin(1.5708-GAMDEGIC/57.3+ANG);
+		X1OLD=X1;
+		Y1OLD=Y1;
+		AXT=AT*X1/VEL;
+		AYT=AT*Y1/VEL;
+	elseif (T>=TUPT & T<=TGRAVEND)
+		VEL=sqrt(XD^2+YD^2);
+		AXT=AT*X1/VEL;
+		AYT=AT*Y1/VEL;
+	elseif T<=TUPT
+		RTMAG=sqrt(X^2+Y^2);
+		AXT=AT*X/RTMAG;
+		AYT=AT*Y/RTMAG;
+	end
+	if S>=(TS-.00001)
+		S=0.;
+		DISTNM=distance3dkm(X,Y,Z,XFIRST,YFIRST,ZFIRST);
+		ALTNM=(sqrt(X^2+Y^2)-A)/3280.;
+		RMAG=sqrt(X^2+Y^2);
+		VMAG=sqrt(XD^2+YD^2);
+		GAMDEG=90-57.3*acos((X*XD+Y*YD)/(RMAG*VMAG));
+		RHO=.0034*exp(-ALT/22000.);
+		QPRES=.5*RHO*VEL*VEL;
+		RRKM=sqrt((X-XR)^2+(Y-YR)^2)/3280.;
+		DISTRKM=distance3dkm(XR,YR,ZR,XFIRST,YFIRST,ZFIRST);
+		ALTRKM=(sqrt(XR^2+YR^2)-A)/3280.;
+		RRMAG=sqrt(XR^2+YR^2);
+		RRTMAG=sqrt((X-XR)^2+(Y-YR)^2);
+		ELDEG=90.-57.3*acos((XR*(X-XR)+YR*(Y-YR))/(RRMAG*RRTMAG));
+		if (ELDEG>2. & ELDEG<85)
+			ISEE=1;
+		else
+			ISEE=0;
+		end
+		if ISEE==1
+			XN=XN+1;
+			if IFILTER==1
+				XK1=2.*(2.*XN-1.)/(XN*(XN+1));
+				XK2=6./(XN*(XN+1)*TS);
+			else
+				XK1=3*(3*XN*XN-3*XN+2)/(XN*(XN+1)*(XN+2));
+				XK2=18*(2*XN-1)/(XN*(XN+1)*(XN+2)*TS);
+				XK3=60/(XN*(XN+1)*(XN+2)*TS*TS);
+			end
+			TS2=TS*TS;
+			TS3=TS2*TS;
+			TS4=TS3*TS;
+			TS5=TS4*TS;
+			THET=atan2(Y-YR,XR-X);
+			R=sqrt((XR-X)^2+(Y-YR)^2);
+			THETNOISE=SIGTHET*randn;
+			RNOISE=SIGR*randn;
+			RMEAS=R+RNOISE;
+			THETMEAS=THET+THETNOISE;
+			XTS=XR-RMEAS*cos(THETMEAS);
+			YTS=YR+RMEAS*sin(THETMEAS);
+			XTNOISE=X-XTS;
+			SIGX=sqrt((cos(THET)*SIGR)^2+(R*sin(THET)*SIGTHET)^2);
+			YTNOISE=Y-YTS;
+			SIGY=sqrt((sin(THET)*SIGR)^2+(R*cos(THET)*SIGTHET)^2);
+			if IFILTER==1
+				RMAT(1,1)=SIGX^2;
+				PHIP=PHI*P;
+				PHIPPHIT=PHIP*PHIT;
+				M=PHIPPHIT+Q;
+				HM=HMAT*M;
+				HMHT=HM*HT;
+				HMHTR=HMHT+RMAT;
+				HMHTRINV(1,1)=1./HMHTR;
+				MHT=M*HT;
+				K=MHT*HMHTRINV;
+				KH=K*HMAT;
+				IKH=IDNPZ-KH;
+				P=IKH*M;
+				if XK1>K(1,1)
+					XK1PZ=XK1;
+					XK2PZ=XK2;
+				else
+					XK1PZ=K(1,1);
+					XK2PZ=K(2,1);
+				end
+				if QGRAV==0
+					XDDH=X1D*(1.+ERR);
+				else
+					VELH=sqrt(XDH^2+YDH^2);
+					XDDH=AT*XDH/(VELH+.0001);
+				end
+				RES=XTS-XH-TS*XDH-.5*TS*TS*XDDH;
+				XH=XH+XDH*TS+.5*TS*TS*XDDH+XK1PZ*RES;
+				XDH=XDH+XDDH*TS+XK2PZ*RES;
+
+				RMATP(1,1)=SIGY^2;
+				PHIPP=PHI*PP;
+				PHIPPHITP=PHIPP*PHIT;
+				MP=PHIPPHITP+Q;
+				HMP=HMAT*MP;
+				HMHTP=HMP*HT;
+				HMHTRP=HMHTP+RMATP;
+				HMHTRINVP(1,1)=1./HMHTRP;
+				MHTP=MP*HT;
+				KP=MHTP*HMHTRINVP;
+				KHP=KP*HMAT;
+				IKHP=IDNPZ-KHP;
+				PP=IKHP*MP;
+				if XK1>K(1,1)
+					XK1PZP=XK1;
+					XK2PZP=XK2;
+				else
+					XK1PZP=KP(1,1);
+					XK2PZP=KP(2,1);
+				end
+				if QGRAV==0
+					YDDH=Y1D*(1.+ERR);
+				else
+					YDDH=AT*YDH/(VELH+.0001);
+				end
+				RESP=YTS-YH-TS*YDH-.5*TS*TS*YDDH;
+				YH=YH+YDH*TS+.5*TS*TS*YDDH+XK1PZP*RESP;
+				YDH=YDH+YDDH*TS+XK2PZP*RESP;
+			else
+				M11=P11+TS*P12+.5*TS2*P13+TS*(P12+TS*P22+.5*TS2*P23);
+				M11=M11+.5*TS2*(P13+TS*P23+.5*TS2*P33)+TS5*PHIS1/20.;
+				M12=P12+TS*P22+.5*TS2*P23+TS*(P13+TS*P23+.5*TS2*P33);
+				M12=M12+TS4*PHIS1/8.;
+				M13=P13+TS*P23+.5*TS2*P33+PHIS1*TS3/6.;
+				M22=P22+TS*P23+TS*(P23+TS*P33)+PHIS1*TS3/3.;
+				M23=P23+TS*P33+.5*TS2*PHIS1;
+				M33=P33+PHIS1*TS;
+				BOT=M11+SIGX*SIGX;
+				K1=M11/BOT;
+				K2=M12/BOT;
+				K3=M13/BOT;
+				FACT=1.-K1;
+				P11=FACT*M11;
+				P12=FACT*M12;
+				P13=FACT*M13;
+				P22=-K2*M12+M22;
+				P23=-K2*M13+M23;
+				P33=-K3*M13+M33;
+				if XK1>K1
+					XK1PZ=XK1;
+					XK2PZ=XK2;
+					XK3PZ=XK3;
+				else
+					XK1PZ=K1;
+					XK2PZ=K2;
+					XK3PZ=K3;
+				end
+				RES=XTS-XH-TS*XDH-.5*TS*TS*XDDH;
+				XH=XH+XDH*TS+.5*TS*TS*XDDH+XK1PZ*RES;
+				XDH=XDH+XDDH*TS+XK2PZ*RES;
+				XDDH=XDDH+XK3PZ*RES;
+
+				M11P=P11P+TS*P12P+.5*TS2*P13P+TS*(P12P+TS*P22P+.5*TS2*P23P);
+				M11P=M11P+.5*TS2*(P13P+TS*P23P+.5*TS2*P33P)+TS5*PHIS1/20.;
+				M12P=P12P+TS*P22P+.5*TS2*P23P+TS*(P13P+TS*P23P+.5*TS2*P33P);
+				M12P=M12P+TS4*PHIS1/8.;
+				M13P=P13P+TS*P23P+.5*TS2*P33P+PHIS1*TS3/6.;
+				M22P=P22P+TS*P23P+TS*(P23P+TS*P33P)+PHIS1*TS3/3.;
+				M23P=P23P+TS*P33P+.5*TS2*PHIS1;
+				M33P=P33P+PHIS1*TS;
+				BOTP=M11P+SIGY*SIGY;
+				K1P=M11P/BOTP;
+				K2P=M12P/BOTP;
+				K3P=M13P/BOTP;
+				FACTP=1.-K1P;
+				P11P=FACTP*M11P;
+				P12P=FACTP*M12P;
+				P13P=FACTP*M13P;
+				P22P=-K2P*M12P+M22P;
+				P23P=-K2P*M13P+M23P;
+				P33P=-K3P*M13P+M33P;
+				if XK1>K1
+					XK1PZP=XK1;
+					XK2PZP=XK2;
+					XK3PZP=XK3;
+				else
+					XK1PZP=K1P;
+					XK2PZP=K2P;
+					XK3PZP=K3P;
+				end
+				RESP=YTS-YH-TS*YDH-.5*TS*TS*YDDH;
+				YH=YH+YDH*TS+.5*TS*TS*YDDH+XK1PZP*RESP;
+				YDH=YDH+YDDH*TS+XK2PZP*RESP;
+				YDDH=YDDH+XK3PZP*RESP;
+			end
+		end
+		if IFILTER==1
+			ERRXTD=(X1-XDH);
+			SP22=sqrt(P(2,2));
+			ERRYTD=(Y1-YDH);
+			SP22P=-SP22;
+			count=count+1;
+			ArrayT(count)=T;
+			ArrayDISTNM(count)=DISTNM;
+			ArrayALTNM(count)=ALTNM;
+			ArrayERRXTD(count)=ERRXTD;
+			ArraySP22(count)=SP22;
+			ArraySP22P(count)=-SP22;
+		else
+			ERRXTD=(X1-XDH);
+			SP22=sqrt(P22);
+			ERRYTD=(Y1-YDH);
+			SP22P=-SP22;
+			count=count+1;
+			ArrayT(count)=T;
+			ArrayDISTNM(count)=DISTNM;
+			ArrayALTNM(count)=ALTNM;
+			ArrayERRXTD(count)=ERRXTD;
+			ArraySP22(count)=SP22;
+			ArraySP22P(count)=-SP22;
+		end
+	end
+end
+figure
+plot(ArrayDISTNM,ArrayALTNM),grid
+xlabel('Downrange (km)')
+ylabel('Altitude (km) ')
+figure
+plot(ArrayT,ArrayERRXTD,ArrayT,ArraySP22,ArrayT,ArraySP22P),grid
+xlabel('Time (s)')
+ylabel('Velocity Error (f/s) ')
+axis([90 240 -500 500])
+clc
+output=[ArrayT',ArrayDISTNM',ArrayALTNM',ArrayERRXTD',ArraySP22',ArraySP22P'];
+save datfil.txt output -ascii
+disp 'simulation finished'
+
+	
+

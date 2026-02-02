@@ -1,0 +1,83 @@
+function [xtf,ytf,zem1,zem2]=predictg(tdum,tf,xdum,ydum,x1dum,...
+		y1dum,wp1,wtot,tb1,trst1,tb2,wp2,wtot2,trst2,wpay,...
+		xmdum,ymdum,x1mdum,y1mdum,tgo)
+if tgo>1
+   h=.01;
+else
+	h=tgo;
+end
+a=2.0926e7;
+gm=1.4077e16;
+t=tdum;
+x=xdum;
+y=ydum;
+x1=x1dum;
+y1=y1dum;
+xm=xmdum;
+ym=ymdum;
+x1m=x1mdum;
+y1m=y1mdum;
+while t<=(tf-.00001)
+	xold=x;
+	yold=y;
+	x1old=x1;
+	y1old=y1;
+	xoldm=xm;
+	yoldm=ym;
+	x1oldm=x1m;
+	y1oldm=y1m;
+	step=1;
+	flag=0;
+	while step <=1
+		if flag==1
+			x=x+h*xd;
+			y=y+h*yd;
+			x1=x1+h*x1d;
+			y1=y1+h*y1d;
+			xm=xm+h*xdm;
+			ym=ym+h*ydm;
+			x1m=x1m+h*x1dm;
+			y1m=y1m+h*y1dm;
+			t=t+h;
+			step=2;
+		end
+		if t<tb1
+			wgt=-wp1*t/tb1+wtot;
+			trst=trst1;
+		elseif t<(tb1+tb2)
+			wgt=-wp2*t/tb2+wtot2+wp2*tb1/tb2;
+			trst=trst2;
+		else
+			wgt=wpay;
+			trst=0.;
+		end
+		at=32.2*trst/wgt;
+		vel=sqrt(x1^2+y1^2);
+		axt=at*x1/vel;
+		ayt=at*y1/vel;
+		tembott=(x^2+y^2)^1.5;
+		x1d=-gm*x/tembott+axt;
+		y1d=-gm*y/tembott+ayt;
+		xd=x1;
+		yd=y1;
+		tembotm=(xm^2+ym^2)^1.5;
+		x1dm=-gm*xm/tembotm;
+		y1dm=-gm*ym/tembotm;
+		xdm=x1m;
+		ydm=y1m;
+		flag=1;
+	end;
+	flag=0;
+ 	x=(xold+x)/2+.5*h*xd;
+	y=(yold+y)/2+.5*h*yd;
+	x1=(x1old+x1)/2+.5*h*x1d;
+	y1=(y1old+y1)/2+.5*h*y1d;
+	xm=(xoldm+xm)/2+.5*h*xdm;
+	ym=(yoldm+ym)/2+.5*h*ydm;
+	x1m=(x1oldm+x1m)/2+.5*h*x1dm;
+	y1m=(y1oldm+y1m)/2+.5*h*y1dm;
+ end
+ 	xtf=x;
+	ytf=y;
+	zem1=x-xm;
+	zem2=y-ym;

@@ -1,0 +1,104 @@
+clear
+n=0.;
+VM=3000.;
+DEL=5./57.3;
+ALT=0.;
+A=1000.;
+DIAM=1.;
+FR=3.;
+XL=20.;
+CTW=0.;
+CRW=6.;
+HW=2.;
+CTT=0.;
+CRT=2.;
+HT=2.;
+XN=4.;
+XCG=10.;
+XHL=19.5;
+WGT=1000.;
+if ALT<=30000.
+	RHO=.002378*exp(-ALT/30000.);
+else
+	RHO=.0034*exp(-ALT/22000.);
+end
+SWING=.5*HW*(CTW+CRW);
+STAIL=.5*HT*(CTT+CRT);
+SREF=3.1416*DIAM*DIAM/4.;
+XLP=FR*DIAM;
+SPLAN=(XL-XLP)*DIAM+1.33*XLP*DIAM/2.;
+XCPN=2*XLP/3;
+AN=.67*XLP*DIAM;
+AB=(XL-XLP)*DIAM;
+XCPB=(.67*AN*XLP+AB*(XLP+.5*(XL-XLP)))/(AN+AB);
+XCPW=XLP+XN+.7*CRW-.2*CTW;
+XMACH=VM/A;
+XIYY=WGT*(3*((DIAM/2)^2)+XL*XL)/(12*32.2);
+TMP1=(XCG-XCPW)/DIAM;
+TMP2=(XCG-XHL)/DIAM;
+TMP3=(XCG-XCPB)/DIAM;
+TMP4=(XCG-XCPN)/DIAM;
+B=sqrt(XMACH^2-1);
+Q=.5*RHO*VM*VM;
+Y1=2*TMP4+8*SWING*TMP1/(B*SREF)+8*STAIL*TMP2/(B*SREF);
+Y2=1.5*SPLAN*TMP3/SREF;
+Y3=8*STAIL*TMP2*DEL/(B*SREF);
+ALFTR=(-Y1-sqrt(Y1*Y1-4.*Y2*Y3))/(2*Y2);
+CNA=2+1.5*SPLAN*ALFTR/SREF+8*SWING/(B*SREF)+8*STAIL/(B*SREF);
+CND=8*STAIL/(B*SREF);
+CMAP=2*TMP4+1.5*SPLAN*ALFTR*TMP3/SREF+8*SWING*TMP1/(B*SREF);
+CMA=CMAP+8*STAIL*TMP2/(B*SREF);
+CMD=8*STAIL*TMP2/(B*SREF);
+XMA=Q*SREF*DIAM*CMA/XIYY;
+XMD=Q*SREF*DIAM*CMD/XIYY;
+ZA=-32.2*Q*SREF*CNA/(WGT*VM);
+ZD=-32.2*Q*SREF*CND/(WGT*VM);
+WZ=sqrt((XMA*ZD-ZA*XMD)/ZD);
+WAF=sqrt(-XMA);
+ZAF=.5*WAF*ZA/XMA;
+XK1=-VM*(XMA*ZD-XMD*ZA)/(1845*XMA);
+XK2=XK1;
+TA=XMD/(XMA*ZD-XMD*ZA);
+XK3=1845*XK1/VM;
+E=0.;
+ED=0.;
+T=0;
+H=.0025;
+S=0;
+while T<1.99999
+	EOLD=E;
+	EDOLD=ED;
+	STEP=1;
+	FLAG=0;
+   	while STEP<=1
+      		if FLAG==1
+         		STEP=2;
+			E=E+H*ED;
+			ED=ED+H*EDD;
+			T=T+H;
+		end
+		EDD=WAF*WAF*(DEL*57.3-E-2.*ZAF*ED/WAF);
+ 		XNL=XK1*(E-EDD/WZ^2);
+ 		THD=XK3*(E+TA*ED);
+       		FLAG=1;
+    	end
+    	FLAG=0;
+    	E=.5*(EOLD+E+H*ED);
+    	ED=.5*(EDOLD+ED+H*EDD);
+    	S=S+H;
+    	if S>=.0099999
+		S=0.;
+		n=n+1;
+		ArrayT(n)=T;
+		ArrayXNL(n)=XNL;
+		ArrayTHD(n)=THD;
+	end
+end
+figure
+plot(ArrayT,ArrayXNL),grid
+xlabel('Time (Sec)')
+ylabel('Missile Acceleration (G)')
+clc
+output=[ArrayT',ArrayXNL',ArrayTHD'];
+save datfil.txt output  -ascii
+disp 'simulation finished'

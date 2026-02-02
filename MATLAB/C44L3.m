@@ -1,0 +1,109 @@
+clear
+count=0;
+TLAUNCH=300.;
+RDESKM=10000.;
+ALTMKMIC=0.;
+TLOFT=0.;
+VBOLIM=5.;	
+I=1;
+for XLONGMDEG=0:5:150,
+	for XLATMDEG=-40:2.5:40,
+		for TLAUNCH=300:100:1600,
+			ALTM=ALTMKMIC*3280.;
+			A=2.0926E7;
+			GM=1.4077E16;
+			XLONGFDEG=57.3*RDESKM*3280./A;
+			XLATFDEG=0.;
+			PI=3.14159;
+			XLONGTDEG=0.;
+			XLATTDEG=0.;
+			SWITCH=0;
+			SWITCHM=0;
+			T=0.;
+			XLONGF=XLONGFDEG/57.3;
+			XLATF=XLATFDEG/57.3;
+			XF=A*cos(XLATF)*cos(XLONGF);
+			YF=A*cos(XLATF)*sin(XLONGF);
+			ZF=A*sin(XLATF);
+			XLONGT=XLONGTDEG/57.3;
+			XLONGM=XLONGMDEG/57.3;
+			XLATM=XLATMDEG/57.3;
+			XLATT=XLATTDEG/57.3;
+			XT=A*cos(XLATT)*cos(XLONGT);
+			YT=A*cos(XLATT)*sin(XLONGT);
+			ZT=A*sin(XLATT);
+			XM=(A+ALTM)*cos(XLATM)*cos(XLONGM);
+			YM=(A+ALTM)*cos(XLATM)*sin(XLONGM);
+			ZM=(A+ALTM)*sin(XLATM);
+			DISTFKM=distance3dkm(XF,YF,ZF,XT,YT,ZT);
+			TFTOT=252.+.223*DISTFKM-(5.44E-6)*DISTFKM*DISTFKM;
+			TFTOT=TFTOT+TLOFT;
+			for TF=(TLAUNCH+60.):50:TFTOT,
+				TGOLAM=TFTOT-T;
+% CALCULATE TARGET VELOCITY REQUIRED TO REACH ITS DESTINATION
+				[VRX,VRY,VRZ]=LAMBERT3D(XT,YT,ZT,TGOLAM,XF,YF,ZF,SWITCH);
+				XTD=VRX;
+				YTD=VRY;
+				ZTD=VRZ;
+% CALCULATE TARGET STATES AT DESIRED INTERCEPT TIME
+				T0=0.;
+				T1=TF;
+				X0(1)=XT/3280.;
+				X0(2)=YT/3280.;
+				X0(3)=ZT/3280.;
+				X0(4)=XTD/3280.;
+				X0(5)=YTD/3280.;
+				X0(6)=ZTD/3280.;
+				[X1]=KEPLER1(X0,T0,T1);
+				XTF=X1(1)*3280.;
+				YTF=X1(2)*3280.;
+				ZTF=X1(3)*3280.;
+				ALTFKM=(sqrt(XT^2+YTF^2+ZTF^2)-A)/3280.;
+				if ALTFKM<50.
+					break
+				end
+% CALCULATE MISSILE VELOCITY REQUIRED TO INTERCEPT TARGET AT DESIRED INTERCEPT TIME
+				TGOLAMM=TF-TLAUNCH;
+				[VRXM,VRYM,VRZM]=LAMBERT3D(XM,YM,ZM,TGOLAMM,XTF,YTF,ZTF,SWITCHM);
+				XMD=VRXM;
+				YMD=VRYM;
+				ZMD=VRZM;
+% CALCULATE MISSILE STATES AT DESIRED INTERCEPT TIME
+				T1=TF;
+				T0=TLAUNCH;
+				X0(1)=XM/3280.;
+				X0(2)=YM/3280.;
+				X0(3)=ZM/3280.;
+				X0(4)=XMD/3280.;
+				X0(5)=YMD/3280.;
+				X0(6)=ZMD/3280.;
+				[X1]=KEPLER1(X0,T0,T1);
+				XMF=X1(1)*3280.;
+				YMF=X1(2)*3280.;
+				ZMF=X1(3)*3280.;
+				XMDF=X1(4)*3280.;
+				YMDF=X1(5)*3280.;
+				ZMDF=X1(6)*3280.;
+				VBOM=sqrt(XMD^2+YMD^2+ZMD^2)/3280.;
+				VBOT=sqrt(XTD^2+YTD^2+ZTD^2)/3280.;
+				if (VBOM<VBOLIM & VBOT<7.5)
+count=count+1;
+					ArrayTF(count)=TF;
+					ArrayTLAUNCH(count)=TLAUNCH;
+					ArrayXLONGM(count)=XLONGMDEG*111.;
+					ArrayXLATM(count)=XLATMDEG*111.;
+					ArrayVBOM(count)=VBOM;
+				end	
+			end
+		end
+	end
+end
+figure
+plot(ArrayXLONGM,ArrayXLATM,'r+'),grid
+xlabel('Downrange (km)')
+ylabel('Crossrange (km) ')
+clc
+output=[ArrayTF',ArrayTLAUNCH',ArrayXLONGM',ArrayXLATM',ArrayVBOM'];
+save datfil.txt output -ascii
+disp 'simulation finished'
+	

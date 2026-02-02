@@ -1,0 +1,193 @@
+clear
+count=0;
+XLONGMDEG=45.;
+XLONGTDEG=90.;
+ALTNMTIC=0.;
+ALTNMMIC=0.;
+TF=500.;
+GAMDEGT=23.;
+AMAG=64.4;
+PULSES=10.;
+PREDERR=-100000.;
+PULSE_ON=0;
+ACQUIRE=1;
+PULSE_NUM=PULSES-1.;
+H=.01;
+A=2.0926e7;
+GM=1.4077e16;
+DEGRAD=360./(2.*pi);
+XNC=0.;
+GAMT=GAMDEGT/57.3;
+DISTNMT=6000.;
+PHIT=DISTNMT*6076./A;
+ALTT=ALTNMTIC*6076.;
+ALTM=ALTNMMIC*6076.;
+R0T=A+ALTT;
+TOP=GM*(1.-cos(PHIT));
+TEMP=R0T*cos(GAMT)/A-cos(PHIT+GAMT);
+BOT=R0T*cos(GAMT)*TEMP;
+VT=sqrt(TOP/BOT);
+XLONGM=XLONGMDEG/DEGRAD;
+XLONGT=XLONGTDEG/DEGRAD;
+if XLONGM>XLONGT
+	X1T=VT*cos(pi/2.-GAMT+XLONGT);
+	Y1T=VT*sin(pi/2.-GAMT+XLONGT);
+else
+	X1T=VT*cos(-pi/2.+GAMT+XLONGT);
+	Y1T=VT*sin(-pi/2.+GAMT+XLONGT);
+end
+S=0.;
+XLONGM=XLONGMDEG/DEGRAD;
+XLONGT=XLONGTDEG/DEGRAD;
+XM=(A+ALTM)*cos(XLONGM);
+YM=(A+ALTM)*sin(XLONGM);
+XT=(A+ALTT)*cos(XLONGT);
+YT=(A+ALTT)*sin(XLONGT);
+XFIRSTT=XT;
+YFIRSTT=YT;
+T=0.;
+[XTF,YTF]=predictpz(TF,XT,YT,X1T,Y1T);
+YTF=YTF+PREDERR;
+[VRXM,VRYM]=lambertpz(XM,YM,TF,XTF,YTF,XLONGM,XLONGT);
+X1M=VRXM;
+Y1M=VRYM;
+RTM1=XT-XM;
+RTM2=YT-YM;
+RTM=sqrt(RTM1^2+RTM2^2);
+VTM1=X1T-X1M;
+VTM2=Y1T-Y1M;
+VC=-(RTM1*VTM1+RTM2*VTM2)/RTM;
+DELV=0.;
+while VC>=0.
+ 	TGO=RTM/VC;
+ 	if TGO>.1
+       H=.01;
+	else
+		H=.0001;
+	end
+	XOLDT=XT;
+	YOLDT=YT;
+	X1OLDT=X1T;
+	Y1OLDT=Y1T;
+	XOLDM=XM;
+	YOLDM=YM;
+	X1OLDM=X1M;
+	Y1OLDM=Y1M;
+	DELVOLD=DELV;
+	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+			XT=XT+H*XDT;
+			YT=YT+H*YDT;
+			X1T=X1T+H*X1DT;
+			Y1T=Y1T+H*Y1DT;
+			XM=XM+H*XDM;
+			YM=YM+H*YDM;
+			X1M=X1M+H*X1DM;
+			Y1M=Y1M+H*Y1DM;
+			DELV=DELV+H*DELVD;
+			T=T+H;
+			STEP=2;
+		end
+		TEMBOTT=(XT^2+YT^2)^1.5;
+		X1DT=-GM*XT/TEMBOTT;
+		Y1DT=-GM*YT/TEMBOTT;
+		XDT=X1T;
+		YDT=Y1T;
+		RTM1=XT-XM;
+		RTM2=YT-YM;
+		RTM=sqrt(RTM1^2+RTM2^2);
+		VTM1=X1T-X1M;
+		VTM2=Y1T-Y1M;
+		VC=-(RTM1*VTM1+RTM2*VTM2)/RTM;
+		TGO=RTM/VC;
+		XLAM=atan2(RTM2,RTM1);
+		XLAMD=(RTM1*VTM2-RTM2*VTM1)/(RTM*RTM);
+		DELVD=abs(XNC);
+		AM1=-XNC*sin(XLAM);
+		AM2=XNC*cos(XLAM);
+		TEMBOTM=(XM^2+YM^2)^1.5;
+		X1DM=-GM*XM/TEMBOTM+AM1;
+		Y1DM=-GM*YM/TEMBOTM+AM2;
+		XDM=X1M;
+		YDM=Y1M;
+		FLAG=1;
+	end;
+	FLAG=0;
+ 	XT=(XOLDT+XT)/2+.5*H*XDT;
+	YT=(YOLDT+YT)/2+.5*H*YDT;
+	X1T=(X1OLDT+X1T)/2+.5*H*X1DT;
+	Y1T=(Y1OLDT+Y1T)/2+.5*H*Y1DT;
+	XM=(XOLDM+XM)/2+.5*H*XDM;
+	YM=(YOLDM+YM)/2+.5*H*YDM;
+	X1M=(X1OLDM+X1M)/2+.5*H*X1DM;
+	Y1M=(Y1OLDM+Y1M)/2+.5*H*Y1DM;
+	DELV=(DELVOLD+DELV)/2.+.5*H*DELVD;
+	ALTT=sqrt(XT^2+YT^2)-A;
+	ALTM=sqrt(XM^2+YM^2)-A;
+	if PULSE_ON==1
+		if T>TOFF
+			PULSE_ON=0;
+			XNC=0.;
+		end
+	end
+	if PULSE_NUM>0.
+		if TGO<=(TF-0.)*PULSE_NUM/(PULSES-1.)
+			PULSE_NUM=PULSE_NUM-1.;
+			PULSE_ON=1;
+			DISC=1.-2.*VC*abs(XLAMD)/AMAG;
+			if DISC>0.
+				TPULSE=TGO*(1.-sqrt(DISC));
+				if XLAMD>0.
+					XNC=AMAG;
+				else
+					XNC=-AMAG;
+				end
+			else
+				TPULSE=0.;
+			end
+			if TGO<TPULSE
+				TOFF=9999999.;
+			else
+				TOFF=T+TPULSE;
+			end
+		end
+	else
+		DISC=1.-2.*VC*abs(XLAMD)/AMAG;
+		if DISC>0.
+			TPULSE=TGO*(1.-sqrt(DISC));
+		else
+			TPULSE=999999.;
+		end
+		if TGO<=TPULSE
+			if XLAMD>0.
+				XNC=AMAG;
+			else
+				XNC=-AMAG;
+			end
+			PULSE_ON=1;
+			TOFF=999999.;
+		end
+	end
+	S=S+H;
+	if S>=.99999
+		S=0.;
+		count=count+1;
+		ArrayT(count)=T;
+		ArrayXNC(count)=XNC;
+		ArrayXLAMD(count)=XLAMD;
+		ArrayDELV(count)=DELV;
+	end
+end
+RTM
+DELV	
+figure
+plot(ArrayT,ArrayXLAMD),grid
+xlabel('Time (Sec)')
+ylabel('Line of Sight Rate (Rad/Sec) ')
+axis([0 500 0 .00002])
+clc
+output=[ArrayT',ArrayXNC',ArrayXLAMD',ArrayDELV'];
+save datfil.txt output -ascii
+disp 'simulation finished'

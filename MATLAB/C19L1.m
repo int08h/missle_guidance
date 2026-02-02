@@ -1,0 +1,221 @@
+clear
+count=0;
+LEFT=0;
+A=2.0926e7;
+GM=1.4077e16;
+XNP=3.;
+AXMGUID=0.;
+AYMGUID=0.;
+PREDERR=0.;
+XISP1=250.;
+XISP2=250.;
+XMF1=.85;
+XMF2=.85;
+WPAY=100.;
+DELV=20000.;
+DELV1=.3333*DELV;
+DELV2=.6667*DELV;
+AMAX1=20.;
+AMAX2=20.;
+XKICKDEG=80.;
+TOP2=WPAY*(exp(DELV2/(XISP2*32.2))-1.);
+BOT2=1/XMF2-((1.-XMF2)/XMF2)*exp(DELV2/(XISP2*32.2));
+WP2=TOP2/BOT2;
+WS2=WP2*(1-XMF2)/XMF2;
+WTOT2=WP2+WS2+WPAY;
+TRST2=AMAX2*(WPAY+WS2);
+TB2=XISP2*WP2/TRST2;
+TOP1=WTOT2*(exp(DELV1/(XISP1*32.2))-1.);
+BOT1=1/XMF1-((1.-XMF1)/XMF1)*exp(DELV1/(XISP1*32.2));
+WP1=TOP1/BOT1;
+WS1=WP1*(1-XMF1)/XMF1;
+WTOT=WP1+WS1+WTOT2;
+TRST1=AMAX1*(WTOT2+WS1);
+TB1=XISP1*WP1/TRST1;
+ALTNMT=0.;
+ALTNMM=0.;
+ALTT=ALTNMT*6076.;
+ALTM=ALTNMM*6076.;
+DEGRAD=360./(2.*pi);
+S=0.;
+XLONGMDEG=85.;
+XLONGTDEG=90.;
+XLONGM=XLONGMDEG/DEGRAD;
+XLONGT=XLONGTDEG/DEGRAD;
+XM=(A+ALTM)*cos(XLONGM);
+YM=(A+ALTM)*sin(XLONGM);
+XT=(A+ALTT)*cos(XLONGT);
+YT=(A+ALTT)*sin(XLONGT);
+XFIRSTT=XT;
+YFIRSTT=YT;
+if LEFT==1
+	X1T=cos(pi/2.-XKICKDEG/DEGRAD+XLONGT);
+	Y1T=sin(pi/2.-XKICKDEG/DEGRAD+XLONGT);
+else
+	X1T=cos(-pi/2.+XKICKDEG/DEGRAD+XLONGT);
+	Y1T=sin(-pi/2.+XKICKDEG/DEGRAD+XLONGT);
+end
+T=0.;
+TF=50.;
+TGO=TF-T;
+X1M=0.;
+Y1M=0.;
+[XTF,YTF,ZEM1,ZEM2]=predictg(T,TF,XT,YT,X1T,Y1T,WP1,WTOT,...
+		TB1,TRST1,TB2,WP2,WTOT2,TRST2,WPAY,XM,YM,X1M,Y1M,TGO);
+YTF=YTF+PREDERR;
+[VRXM,VRYM]=lambertpz(XM,YM,TF,XTF,YTF,XLONGM,XLONGT);
+X1M=VRXM;
+Y1M=VRYM;
+RTM1=XT-XM;
+RTM2=YT-YM;
+RTM=sqrt(RTM1^2+RTM2^2);
+VTM1=X1T-X1M;
+VTM2=Y1T-Y1M;
+VC=-(RTM1*VTM1+RTM2*VTM2)/RTM;
+DELV=0.;
+XNC=0.;
+while VC>=0.
+ 	TGO=RTM/VC;
+ 	if TGO>.1
+       H=.01;
+	else
+		H=.0001;
+	end
+	XOLDT=XT;
+	YOLDT=YT;
+	X1OLDT=X1T;
+	Y1OLDT=Y1T;
+	XOLDM=XM;
+	YOLDM=YM;
+	X1OLDM=X1M;
+	Y1OLDM=Y1M;
+	DELVOLD=DELV;
+	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+			XT=XT+H*XDT;
+			YT=YT+H*YDT;
+			X1T=X1T+H*X1DT;
+			Y1T=Y1T+H*Y1DT;
+			XM=XM+H*XDM;
+			YM=YM+H*YDM;
+			X1M=X1M+H*X1DM;
+			Y1M=Y1M+H*Y1DM;
+			DELV=DELV+H*DELVD;
+			T=T+H;
+			STEP=2;
+		end
+		if T<TB1
+			WGT=-WP1*T/TB1+WTOT;
+			TRST=TRST1;
+		elseif T<(TB1+TB2)
+			WGT=-WP2*T/TB2+WTOT2+WP2*TB1/TB2;
+			TRST=TRST2;
+		else
+			WGT=WPAY;
+			TRST=0.;
+		end
+		AT=32.2*TRST/WGT;
+		VEL=sqrt(X1T^2+Y1T^2);
+		AXT=AT*X1T/VEL;
+		AYT=AT*Y1T/VEL;
+		TEMBOTT=(XT^2+YT^2)^1.5;
+		X1DT=-GM*XT/TEMBOTT+AXT;
+		Y1DT=-GM*YT/TEMBOTT+AYT;
+		XDT=X1T;
+		YDT=Y1T;
+		RTM1=XT-XM;
+		RTM2=YT-YM;
+		RTM=sqrt(RTM1^2+RTM2^2);
+		VTM1=X1T-X1M;
+		VTM2=Y1T-Y1M;
+		VC=-(RTM1*VTM1+RTM2*VTM2)/RTM;
+		TGO=RTM/VC;
+		XLAM=atan2(RTM2,RTM1);
+		XLAMD=(RTM1*VTM2-RTM2*VTM1)/(RTM*RTM);
+		ATPLOS=AYT*cos(XLAM)-AXT*sin(XLAM);
+		AXMGUID=-XNC*sin(XLAM);
+		AYMGUID=XNC*cos(XLAM);
+		DELVD=abs(XNC);
+		TEMBOTM=(XM^2+YM^2)^1.5;
+		X1DM=-GM*XM/TEMBOTM+AXMGUID;
+		Y1DM=-GM*YM/TEMBOTM+AYMGUID;
+		XDM=X1M;
+		YDM=Y1M;
+		FLAG=1;
+	end;
+	FLAG=0;
+ 	XT=(XOLDT+XT)/2+.5*H*XDT;
+	YT=(YOLDT+YT)/2+.5*H*YDT;
+	X1T=(X1OLDT+X1T)/2+.5*H*X1DT;
+	Y1T=(Y1OLDT+Y1T)/2+.5*H*Y1DT;
+	XM=(XOLDM+XM)/2+.5*H*XDM;
+	YM=(YOLDM+YM)/2+.5*H*YDM;
+	X1M=(X1OLDM+X1M)/2+.5*H*X1DM;
+	Y1M=(Y1OLDM+Y1M)/2+.5*H*Y1DM;
+	DELV=(DELVOLD+DELV)/2.+.5*H*DELVD;
+	ALTT=sqrt(XT^2+YT^2)-A;
+	ALTM=sqrt(XM^2+YM^2)-A;
+	S=S+H;
+	if S>=.99999
+		S=0.;
+		[XTF,YTF,ZEM1,ZEM2]=predictg(T,TF,XT,YT,X1T,Y1T,WP1,WTOT,...
+			TB1,TRST1,TB2,WP2,WTOT2,TRST2,WPAY,XM,YM,X1M,Y1M,TGO);
+		ZEMPLOS=-ZEM1*sin(XLAM)+ZEM2*cos(XLAM);
+		XNC=XNP*ZEMPLOS/(TGO*TGO);
+		if XNC>966.
+			XNC=966.;
+		end
+	 	if XNC<-966.
+	 		XNC=-966.;
+	 	end
+		ALTNMT=ALTT/6076.;
+		R=sqrt(XT^2+YT^2);
+		RF=sqrt(XFIRSTT^2+YFIRSTT^2);
+		CBETA=(XT*XFIRSTT+YT*YFIRSTT)/(R*RF);
+		BETA=acos(CBETA);
+		DISTNMT=A*BETA/6076.;
+		ALTNMM=ALTM/6076.;
+		XNCG=XNC/32.2;
+		R=sqrt(XM^2+YM^2);
+		RF=sqrt(XFIRSTT^2+YFIRSTT^2);
+		CBETA=(XM*XFIRSTT+YM*YFIRSTT)/(R*RF);
+		BETA=acos(CBETA);
+		DISTNMM=A*BETA/6076.;
+		ATPLOSG=ATPLOS/32.2;
+		count=count+1;
+		ArrayT(count)=T;
+		ArrayDISTNMT(count)=DISTNMT;
+		ArrayALTNMT(count)=ALTNMT;
+		ArrayDISTNMM(count)=DISTNMM;
+		ArrayALTNMM(count)=ALTNMM;
+		ArrayXNCG(count)=XNCG;
+		ArrayDELV(count)=DELV;
+		ArrayATPLOSG(count)=ATPLOSG;
+	end
+ end
+RTM
+DELV
+figure
+plot(ArrayDISTNMT,ArrayALTNMT,ArrayDISTNMM,ArrayALTNMM),grid
+xlabel('Downrange (Nmi)')
+ylabel('Altitude (Nmi) ')
+figure
+plot(ArrayT,ArrayATPLOSG),grid
+xlabel('Time (Sec)')
+ylabel('Acceleration Perp. To LOS (G) ')
+figure
+plot(ArrayT,ArrayXNCG),grid
+xlabel('Time (Sec)')
+ylabel('Acceleration (G) ')
+figure
+plot(ArrayT,ArrayDELV),grid
+xlabel('Time (Sec)')
+ylabel('Lateral Divert (Ft/Sec) ')
+clc
+output=[ArrayT',ArrayDISTNMT',ArrayALTNMT',ArrayDISTNMM',...
+		ArrayALTNMM',ArrayXNCG',ArrayDELV',ArrayATPLOSG'];
+save datfil.txt output -ascii
+disp 'simulation finished'
+	

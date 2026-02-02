@@ -1,0 +1,114 @@
+clear
+n=0;
+VM=3000.;
+XNCG=10.;
+ALT=0.;
+A=1000.;
+DIAM=1.;
+FR=3.;
+XL=20.;
+CTW=0.;
+CRW=6.;
+HW=2.;
+CTT=0.;
+CRT=2.;
+HT=2.;
+XN=4.;
+XCG=10.;
+XHL=19.5;
+WGT=1000.;
+XKR=.1;
+if ALT<=30000.
+	RHO=.002378*exp(-ALT/30000.);
+else
+	RHO=.0034*exp(-ALT/22000.);
+end
+SWING=.5*HW*(CTW+CRW);
+STAIL=.5*HT*(CTT+CRT);
+SREF=3.1416*DIAM*DIAM/4.;
+XLP=FR*DIAM;
+SPLAN=(XL-XLP)*DIAM+1.33*XLP*DIAM/2.;
+XCPN=2*XLP/3;
+AN=.67*XLP*DIAM;
+AB=(XL-XLP)*DIAM;
+XCPB=(.67*AN*XLP+AB*(XLP+.5*(XL-XLP)))/(AN+AB);
+XCPW=XLP+XN+.7*CRW-.2*CTW;
+XMACH=VM/A;
+XIYY=WGT*(3*((DIAM/2)^2)+XL*XL)/(12*32.2);
+TMP1=(XCG-XCPW)/DIAM;
+TMP2=(XCG-XHL)/DIAM;
+TMP3=(XCG-XCPB)/DIAM;
+TMP4=(XCG-XCPN)/DIAM;
+B=sqrt(XMACH^2-1);
+Q=.5*RHO*VM*VM;
+P1=WGT*XNCG/(Q*SREF);
+Y1=2.+8*SWING/(B*SREF)+8*STAIL/(B*SREF);
+Y2=1.5*SPLAN/SREF;
+Y3=8*STAIL/(B*SREF);
+Y4=2*TMP4+8*SWING*TMP1/(B*SREF)+8*STAIL*TMP2/(B*SREF);
+Y5=1.5*SPLAN*TMP3/SREF;
+Y6=8*STAIL*TMP2/(B*SREF);
+P2=Y2-Y3*Y5/Y6;
+P3=Y1-Y3*Y4/Y6;
+ALFTR=(-P3+sqrt(P3*P3+4.*P2*P1))/(2.*P2);
+DELTR=-Y4*ALFTR/Y6-Y5*ALFTR*ALFTR/Y6;
+CNA=2+1.5*SPLAN*ALFTR/SREF+8*SWING/(B*SREF)+8*STAIL/(B*SREF);
+CND=8*STAIL/(B*SREF);
+CMAP=2*TMP4+1.5*SPLAN*ALFTR*TMP3/SREF+8*SWING*TMP1/(B*SREF);
+CMA=CMAP+8*STAIL*TMP2/(B*SREF);
+CMD=8*STAIL*TMP2/(B*SREF);
+XMA=Q*SREF*DIAM*CMA/XIYY;
+XMD=Q*SREF*DIAM*CMD/XIYY;
+ZA=-32.2*Q*SREF*CNA/(WGT*VM);
+ZD=-32.2*Q*SREF*CND/(WGT*VM);
+WZ=sqrt((XMA*ZD-ZA*XMD)/ZD);
+WAF=sqrt(-XMA);
+ZAF=.5*WAF*ZA/XMA;
+XK1=-VM*(XMA*ZD-XMD*ZA)/(1845*XMA);
+XK2=XK1;
+TA=XMD/(XMA*ZD-XMD*ZA);
+XK3=1845*XK1/VM;
+XKDC=(1.-XKR*XK3)/(XK1*XKR);
+E=0.;
+ED=0.;
+T=0;
+H=.0001;
+S=0;
+while T<1.99999
+	EOLD=E;
+	EDOLD=ED;
+	STEP=1;
+	FLAG=0;
+   	while STEP<=1
+      		if FLAG==1
+         		STEP=2;
+			E=E+H*ED;
+			ED=ED+H*EDD;
+			T=T+H;
+		end
+		THD=XK3*(E+TA*ED);
+		DEL=XKR*(XKDC*XNCG+THD);
+ 		EDD=WAF*WAF*(DEL-E-2.*ZAF*ED/WAF);
+ 		XNL=XK1*(E-EDD/WZ^2);
+		FLAG=1;
+   	end
+   	FLAG=0;
+	E=.5*(EOLD+E+H*ED);
+	ED=.5*(EDOLD+ED+H*EDD);
+	S=S+H;
+	if S>=.0099999
+		S=0.;
+		n=n+1;
+		ArrayT(n)=T;
+		ArrayXNL(n)=XNL;
+		ArrayXNCG(n)=XNCG;
+	end
+end
+figure
+plot(ArrayT,ArrayXNL,ArrayT,ArrayXNCG),grid
+xlabel('Time (Sec)')
+ylabel('Missile Acceleration (G)')
+clc
+output=[ArrayT',ArrayXNL',ArrayXNCG'];
+save datfil.txt output  -ascii
+disp 'simulation finished'

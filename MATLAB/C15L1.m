@@ -1,0 +1,100 @@
+clear
+count=0;
+H=.01;
+A=2.0926e7;
+GM=1.4077e16;
+GAM=45.;
+ALTNM=0.;
+V=3000.;
+ALT=ALTNM/6076.;
+ANG=0.;
+VRX=V*cos(1.5708-GAM/57.3+ANG);
+VRY=V*sin(1.5708-GAM/57.3+ANG);
+G=32.2;
+S=0.;
+SCOUNT=0.;
+RT1=ALT*cos(ANG);
+RT2=ALT*sin(ANG);
+VT1=VRX;
+VT2=VRY;
+X=(A+ALT)*cos(ANG);
+Y=(A+ALT)*sin(ANG);
+XFIRST=X;
+YFIRST=Y;
+X1=VRX;
+Y1=VRY;
+T=0.;
+while ALTNM > -.0001
+   	RT1OLD=RT1;
+ 	RT2OLD=RT2;
+	VT1OLD=VT1;
+	VT2OLD=VT2;
+	XOLD=X;
+	YOLD=Y;
+	X1OLD=X1;
+	Y1OLD=Y1;
+	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+			STEP=2;
+ 			RT1=RT1+H*RT1D;
+			RT2=RT2+H*RT2D;
+			VT1=VT1+H*VT1D;
+			VT2=VT2+H*VT2D;
+			X=X+H*XD;
+			Y=Y+H*YD;
+			X1=X1+H*X1D;
+			Y1=Y1+H*Y1D;
+			T=T+H;
+		end
+		AT1=0.;
+		AT2=-G;
+		RT1D=VT1;
+		RT2D=VT2;
+		VT1D=AT1;
+		VT2D=AT2;
+		TEMBOT=(X^2+Y^2)^1.5;
+		X1D=-GM*X/TEMBOT;
+		Y1D=-GM*Y/TEMBOT;
+		XD=X1;
+		YD=Y1;
+		FLAG=1;
+	end
+	FLAG=0;
+ 	RT1=(RT1OLD+RT1)/2.+.5*H*RT1D;
+ 	RT2=(RT2OLD+RT2)/2.+.5*H*RT2D;
+	VT1=(VT1OLD+VT1)/2.+.5*H*VT1D;
+	VT2=(VT2OLD+VT2)/2.+.5*H*VT2D;
+	X=(XOLD+X)/2+.5*H*XD;
+	Y=(YOLD+Y)/2+.5*H*YD;
+	X1=(X1OLD+X1)/2+.5*H*X1D;
+	Y1=(Y1OLD+Y1)/2+.5*H*Y1D;
+	S=S+H;
+	if S>=1.99999
+		S=0.;
+		RT1NM=RT1/6076.;
+		RT2NM=RT2/6076.;
+		ALTNM=(sqrt(X^2+Y^2)-A)/6076.;
+		R=sqrt(X^2+Y^2);
+		RF=sqrt(XFIRST^2+YFIRST^2);
+		CBETA=(X*XFIRST+Y*YFIRST)/(R*RF);
+		BETA=acos(CBETA);
+		DISTNM=A*BETA/6076.;
+		count=count+1;
+		ArrayT(count)=T;
+		ArrayRT1NM(count)=RT1NM;
+		ArrayRT2NM(count)=RT2NM;
+		ArrayDISTNM(count)=DISTNM;
+		ArrayALTNM(count)=ALTNM;
+	end
+end
+figure
+plot(ArrayRT1NM,ArrayRT2NM,ArrayDISTNM,ArrayALTNM),grid
+xlabel('Downrange (Nmi)')
+ylabel('Altitude (Nmi) ')
+clc
+output=[ArrayT',ArrayRT1NM',ArrayRT2NM',ArrayDISTNM',ArrayALTNM'];
+save datfil.txt output -ascii
+disp 'simulation finished'	
+	

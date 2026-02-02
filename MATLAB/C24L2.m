@@ -1,0 +1,170 @@
+clear
+count=0;
+XNC=322.;
+XNCG=XNC/32.2;
+ALT=0.;
+TS=.01;
+H=.001;
+VM=3000.;
+WCR=50.;
+ZETA=.7;
+TAU=.3;
+WACT=150.;
+ZACT=.7;
+SLOPE=1.5;
+DIAM=1.;
+FR=3.;
+XL=20.;
+CTW=0.;
+CRW=6.;
+HW=2.;
+CTT=0.;
+CRT=2.;
+HT=2.;
+XN=4.;
+XCG=10.;
+XHL=19.5;
+A=1000.;
+if ALT<=30000.
+    RHO=.002378*exp(-ALT/30000.);
+else
+    RHO=.0034*exp(-ALT/22000.);
+end
+WGT=1000.;
+XACC=XCG;
+SWING=.5*HW*(CTW+CRW);
+STAIL=.5*HT*(CTT+CRT);
+SREF=3.1416*DIAM*DIAM/4.;
+XLP=FR*DIAM;
+SPLAN=(XL-XLP)*DIAM+1.33*XLP*DIAM/2.;
+XCPN=2*XLP/3;
+ADEL=1.33*XLP*DIAM/2;
+ASQ=(XL-XLP)*DIAM;
+XCPB=(2*ADEL*XLP/3+ASQ*(XLP+.5*(XL-XLP)))/(ADEL+ASQ);
+XCPW=XLP+XN+.7*CRW-.2*CTW;
+XMACH=VM/A;
+XIYY=WGT*(3*((DIAM/2)^2)+XL*XL)/(12*32.2);
+TMP1=(XCG-XCPW)/DIAM;
+TMP2=(XCG-XHL)/DIAM;
+TMP3=(XCG-XCPB)/DIAM;
+TMP4=(XCG-XCPN)/DIAM;
+B=sqrt(XMACH^2-1);
+Q=.5*RHO*VM*VM;
+T=0.;
+S=0.;
+THD=0;
+ALF=0;
+XX=0.;
+DELNL=0.;
+DELNLD=0.;
+P1=WGT*XNCG/(Q*SREF);
+Y1=2+8*SWING/(B*SREF)+8*STAIL/(B*SREF);
+Y2=1.5*SPLAN/SREF;
+Y3=8*STAIL/(B*SREF);
+Y4=2*TMP4+8*SWING*TMP1/(B*SREF)+8*STAIL*TMP2/(B*SREF);
+Y5=1.5*SPLAN*TMP3/SREF;
+Y6=8*STAIL*TMP2/(B*SREF);
+P2=Y2-Y3*Y5/Y6;
+P3=Y1-Y3*Y4/Y6;
+A0=-P1*Y6;
+ALFTR=(-P3+sqrt(P3*P3+4*P2*P1))/(2.*P2);
+DELTR=-Y4*ALFTR/Y6-Y5*ALFTR*ALFTR/Y6;
+ALFRQD=ALFTR;
+CNA=2+SLOPE*SPLAN*ALFTR/SREF+8*SWING/(B*SREF)+8*STAIL/(B*SREF);
+CND=8*STAIL/(B*SREF);
+CMAP=2*TMP4+SLOPE*SPLAN*ALFTR*TMP3/SREF+8*SWING*TMP1/(B*SREF);
+CMA=CMAP+8*STAIL*TMP2/(B*SREF);
+CMD=8*STAIL*TMP2/(B*SREF);
+XMA=Q*SREF*DIAM*CMA/XIYY;
+XMD=Q*SREF*DIAM*CMD/XIYY;
+ZA=-32.2*Q*SREF*CNA/(WGT*VM);
+ZD=-32.2*Q*SREF*CND/(WGT*VM);
+WZ=sqrt((XMA*ZD-ZA*XMD)/ZD);
+B11=ZA/XMA;
+B12=-1/XMA;
+XK1=-VM*(XMA*ZD-XMD*ZA)/(1845*XMA);
+XK2=XK1;
+TA=XMD/(XMA*ZD-XMD*ZA);
+XK3=1845*XK1/VM;
+W=(TAU*WCR*(1+B11/(WCR*B12))-1)/(2*ZETA*TAU);
+W0=W/sqrt(TAU*WCR);
+Z0=.5*W0*(2*ZETA/W+TAU-1/(W0*W0*WCR*B12));
+XKC=(-W0^2/WZ^2-1.+2.*Z0*W0*TA)/(1.-2.*Z0*W0*TA+W0*W0*TA*TA);
+XKA=XK3/(XK1*XKC);
+XK0=-B12*W*W/TAU;
+XK=XK0/(XK1*(1+XKC));
+WI=XKC*TA*W0*W0/(1.+XKC+W0^2/WZ^2);
+XKR=XK/(XKA*WI);
+XKDC=1.+1845./(XKA*VM);
+while T<=.999999
+    S=S+H;
+    THDOLD=THD;
+    ALFOLD=ALF;
+    XXOLD=XX;
+    DELNLOLD=DELNL;
+    DELNLDOLD=DELNLD;
+    STEP=1;
+    FLAG=0;
+    while STEP <=1
+        if FLAG==1
+            STEP=2;
+            THD=THD+H*THDD;
+            ALF=ALF+H*ALFD;
+            XX=XX+H*XXD;
+            DELNL=DELNL+H*DELNLD;
+            DELNLD=DELNLD+H*DELNLDD;
+            T=T+H;
+        end
+        CN=2*ALF+1.5*SPLAN*ALF*ALF/SREF+8*SWING*ALF/(B*SREF)...
+        +8*STAIL*(ALF+DELNL/57.3)/(B*SREF);
+        CM=2*ALF*TMP4+1.5*SPLAN*ALF*ALF*TMP3/SREF...
+            +8*SWING*ALF*TMP1/(B*SREF)+8*STAIL*(ALF+DELNL/57.3)...
+            *TMP2/(B*SREF);
+        THDD=Q*SREF*DIAM*CM/XIYY;
+        THDDEG=THD*57.3;
+        XNL=32.2*Q*SREF*CN/WGT;
+        XNLG=XNL/32.2;
+        ALFD=THD-XNL/VM;
+        XNANL=XNLG;
+        XXD=WI*(THDDEG+XKA*(XNANL-XNCG*XKDC));
+        DELCNL=XKR*(XX+THDDEG);
+        DELNLDD=WACT*WACT*(DELCNL-DELNL-2*ZACT*DELNLD/WACT);
+        FLAG=1;
+    end
+    FLAG=0;
+    THD=.5*(THDOLD+THD+H*THDD);
+    ALF=.5*(ALFOLD+ALF+H*ALFD);
+    XX=.5*(XXOLD+XX+H*XXD);
+    DELNL=.5*(DELNLOLD+DELNL+H*DELNLD);
+    DELNLD=.5*(DELNLDOLD+DELNLD+H*DELNLDD);
+	if S>=(TS-.00001)
+        S=0.;
+        XNCG=XNC/32.2;
+        XNLG=XNL/32.2;
+        count=count+1;
+        ArrayT(count)=T;
+        ArrayXNCG(count)=XNCG;
+        ArrayXNLG(count)=XNLG;
+        ArrayDELNL(count)=DELNL;
+        ArrayALF(count)=ALF*57.3;
+    end
+end
+output=[ArrayT',ArrayXNCG',ArrayXNLG',ArrayDELNL',ArrayALF'];
+save datfil.txt output  -ascii
+disp 'simulation finished'
+clc
+figure
+plot(ArrayT,ArrayXNCG,ArrayT,ArrayXNLG),grid
+xlabel('Time (s) ')
+ylabel('Acceleration (g')
+axis([0 1 -1 11])
+figure
+plot(ArrayT,ArrayDELNL),grid
+xlabel('Time (s) ')
+ylabel('Fin Deflection (deg')
+figure
+plot(ArrayT,ArrayALF),grid
+xlabel('Time (s) ')
+ylabel('Angle of Attack (deg')
+
+

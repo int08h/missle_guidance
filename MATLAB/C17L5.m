@@ -1,0 +1,64 @@
+clear
+GAMDEG=30.;
+V=24000.;
+TFDES=2200.;
+PI=3.14159;
+DEGRAD=360./(2.*PI);
+XLONGMDEG=0.;
+A=2.0926e7;
+GM=1.4077e16;
+GAM=GAMDEG/DEGRAD;
+XLONGM=XLONGMDEG/DEGRAD;
+ALTM=0.;
+XM=(A+ALTM)*cos(XLONGM);
+YM=(A+ALTM)*sin(XLONGM);
+R0=sqrt(XM^2+YM^2);
+PHIDEG=45.;
+ICOUNT=0;
+PHIMAX=PI/2.;
+PHIMIN=0.;
+PHI=45./DEGRAD;
+TF=100000.;
+while ~(abs(TFDES-TF)<=(.00000001*TFDES))
+	PHIDEG=PHI*DEGRAD;
+	TOP=V*V*R0*R0*cos(GAM)*cos(GAM);
+	BOT=GM*(1.-cos(PHI))+R0*V*V*cos(GAM)*cos(PHI+GAM);
+    RF=TOP/BOT;
+	XLAM=R0*V*V/GM;
+	TOP1=tan(GAM)*(1-cos(PHI))+(1-XLAM)*sin(PHI);
+	BOT1P=(1-cos(PHI))/(XLAM*cos(GAM)*cos(GAM));
+	BOT1=(2-XLAM)*(BOT1P+cos(GAM+PHI)/cos(GAM));
+	TOP2=2*cos(GAM);
+	BOT2=XLAM*((2/XLAM-1)^1.5);
+	TOP3=sqrt(2/XLAM-1);
+	BOT3=cos(GAM)/tan(PHI/2)-sin(GAM);
+	TEMP=(TOP2/BOT2)*atan2(TOP3,BOT3);
+	TF=R0*(TOP1/BOT1+TEMP)/(V*cos(GAM));
+	ICOUNT=ICOUNT+1;
+	if TF>TFDES
+		PHIMAX=PHI;
+	else
+		PHIMIN=PHI;
+	end
+	if ICOUNT==1
+		XNEXT=(PHIMAX+PHIMIN)/2.;
+	else
+		XNEXT=PHI+(PHI-PHIOLD)*(TFDES-TF)/(TF-TOLD);
+		if (XNEXT>PHIMAX|XNEXT<PHIMIN)
+			XNEXT=(PHIMAX+PHIMIN)/2.;
+		end
+	end
+	PHIOLD=PHI;
+	TOLD=TF;
+	PHI=XNEXT;
+	ArrayICOUNT(ICOUNT)=ICOUNT;
+	ArrayPHIDEG(ICOUNT)=PHIDEG;
+	ArrayRF(ICOUNT)=RF;
+	ArrayTF(ICOUNT)=TF;
+end
+XF=RF*cos(PHI)
+YF=RF*sin(PHI)
+clc
+output=[ArrayICOUNT',ArrayPHIDEG',ArrayRF',ArrayTF'];
+save datfil.txt output -ascii
+disp 'simulation finished'

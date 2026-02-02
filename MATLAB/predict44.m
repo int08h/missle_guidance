@@ -1,0 +1,51 @@
+function [xtf,ytf]=predict44(tp,xtp,ytp,xtdp,ytdp,tf,tftot,xf,yf)
+t=tp;
+switch1=0;
+xt=xtp;
+yt=ytp;
+zt=0.;
+xtd=xtdp;
+ytd=ytdp;
+ztd=0.;
+zf=0.;
+a=2.0926E7;
+gm=1.4077E16;
+qboost=1;
+h=.01;
+s=0.;
+axt=0.;
+ayt=0.;
+tgolam=tftot-t;
+[vrx,vry,vrz]=LAMBERT3D(xt,yt,zt,tgolam,xf,yf,zf,switch1);
+xtd=vrx;
+ytd=vry;
+ztd=0;
+while t<=(tf-.00001)
+	xtold=xt;
+	ytold=yt;
+	xtdold=xtd;
+	ytdold=ytd;
+	step=1;
+	flag=0;
+	while step <=1
+		if flag==1
+			xt=xt+h*xtd;
+			yt=yt+h*ytd;
+			xtd=xtd+h*xtdd;
+			ytd=ytd+h*ytdd;
+			t=t+h;
+			step=2;
+		end
+		tembot=(xt^2+yt^2)^1.5;
+		xtdd=-gm*xt/tembot;
+		ytdd=-gm*yt/tembot;
+		flag=1;
+	end;
+	flag=0;
+ 	xt=(xtold+xt)/2+.5*h*xtd;
+	yt=(ytold+yt)/2+.5*h*ytd;
+	xtd=(xtdold+xtd)/2+.5*h*xtdd;
+	ytd=(ytdold+ytd)/2+.5*h*ytdd;
+end
+xtf=xt;
+ytf=yt;

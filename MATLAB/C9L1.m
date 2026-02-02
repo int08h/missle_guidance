@@ -1,0 +1,67 @@
+clear
+VC=4000.;
+XNT=96.6;
+VM=3000.;
+HEDEG=20.;
+SIGRIN=.001;
+TS=.1;
+TF=10.;	
+TS2=TS*TS;
+TS3=TS2*TS;
+TS4=TS3*TS;
+TS5=TS4*TS;
+PHIN=XNT*XNT/TF;
+RTM=VC*TF;
+SIGNOISE=SIGRIN;
+SIGPOS=RTM*SIGNOISE;
+SIGN2=SIGPOS^2;
+P11=SIGN2;
+P12=0.;
+P13=0.;
+P22=(VM*HEDEG/57.3)^2;
+P23=0.;
+P33=XNT*XNT;
+T=0.;
+H=.01;
+S=0.;
+n=0;
+while T<=(TF-1e-5)
+	TGO=TF-T+.000001;
+	RTM=VC*TGO;
+	SIGNOISE=SIGRIN;
+	SIGPOS=RTM*SIGNOISE;
+	SIGN2=SIGPOS^2;
+	M11=P11+TS*P12+.5*TS2*P13+TS*(P12+TS*P22+.5*TS2*P23);
+	M11=M11+.5*TS2*(P13+TS*P23+.5*TS2*P33)+TS5*PHIN/20.;
+	M12=P12+TS*P22+.5*TS2*P23+TS*(P13+TS*P23+.5*TS2*P33)+TS4*PHIN/8.;
+	M13=P13+TS*P23+.5*TS2*P33+PHIN*TS3/6.;
+	M22=P22+TS*P23+TS*(P23+TS*P33)+PHIN*TS3/3.;
+	M23=P23+TS*P33+.5*TS2*PHIN;
+	M33=P33+PHIN*TS;
+	K1=M11/(M11+SIGN2);
+	K2=M12/(M11+SIGN2);
+	K3=M13/(M11+SIGN2);
+	P11=(1.-K1)*M11;
+	P12=(1.-K1)*M12;
+	P13=(1.-K1)*M13;
+	P22=-K2*M12+M22;
+	P23=-K2*M13+M23;
+   	P33=-K3*M13+M33;
+   	n=n+1;
+   	ArrayT(n)=T;
+   	ArrayK1(n)=K1;
+   	ArrayK2(n)=K2;
+   	ArrayK3(n)=K3;
+   	T=T+TS;
+end
+
+figure
+plot(ArrayT,ArrayK1),grid
+xlabel('Flight Time (Sec)')
+ylabel('K1')
+clc
+output=[ArrayT',ArrayK1',ArrayK2',ArrayK3'];
+save datfil.txt output  -ascii
+disp 'simulation finished'
+
+

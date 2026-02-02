@@ -1,0 +1,65 @@
+function[C1,C2,C3,C4,C5,C6]=GENERATEGAINS(TAU,W,Z,WZ,GAM,TF,TS)
+F=zeros([6,6]);
+S=zeros([6,6]);
+G(1,1)=0.;
+G(2,1)=0.;
+G(3,1)=0.;
+G(4,1)=0.;
+G(5,1)=0.;
+G(6,1)=W*W/TAU;
+F(1,2)=1;
+F(2,3)=1;
+F(2,4)=-1.;
+F(2,6)=1./WZ^2;
+F(4,5)=1.;
+F(5,6)=1.;
+F(6,4)=-W*W/TAU;
+F(6,5)=-W*W*(2.*Z/W+TAU)/TAU;
+F(6,6)=-W*W*(1./W^2+2.*Z*TAU/W)/TAU;
+S(1,1)=1	;
+T=0;
+H=.0001;
+S1=0;
+ICOUNT=1;
+while T< (TF-.0001)
+	S1=S1+H;
+	SOLD=S;
+ 	STEP=1;
+ 	FLAG=0;
+	while STEP<=1
+		if FLAG==1 
+			STEP=2;
+			HSD=H*SD;
+			S=S+HSD;
+ 			T=T+H;
+ 		end
+ 		SF=S*F;
+ 		GT=G';
+ 		GTS=GT*S;
+ 		GAMINV=1./GAM;
+ 		C=GAMINV*GTS;
+ 		SFT=SF';
+ 		CT=C';
+ 		CTC=CT*C;
+ 		CTBC=GAM*CTC;
+ 		SFSFT=SF+SFT;
+		SD=SFSFT-CTBC;
+		FLAG=1;
+	end
+	FLAG=0;
+	H2=.5*H;
+	HSDP=H2*SD;
+	SS=SOLD+S;
+	SSP=.5*SS;
+	S=SSP+HSDP;
+	if S1>=(TS-.0001)
+		S1=0;
+		C1(ICOUNT)=-C(1,1);
+		C2(ICOUNT)=-C(1,2);
+		C3(ICOUNT)=-C(1,3);
+		C4(ICOUNT)=-C(1,4);
+		C5(ICOUNT)=-C(1,5);
+		C6(ICOUNT)=-C(1,6);
+		ICOUNT=ICOUNT+1;
+	end
+ end

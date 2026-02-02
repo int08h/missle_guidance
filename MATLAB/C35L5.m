@@ -1,0 +1,108 @@
+clear
+count=0;
+TAU=1.;
+GAM=.00001;
+WZ=5.;
+W=20.;
+Z=.7;
+T=0.;
+H=.01;
+S=0.;
+X=0.;
+E=0.;
+ED=0.;
+EDD=0.;
+E1=0.;
+E2=0.;
+E2D=0.;
+E3=0.;
+E3D=0.;
+E4=0.;
+E4D=0.;
+E5=0.;
+E5D=0.;
+E5DD=0.;
+while ~(T >= (10.-.0001))
+	S=S+H;
+	XOLD=X;
+	EOLD=E;
+	EDOLD=ED;
+	EDDOLD=EDD;
+	E1OLD=E1;
+	E2OLD=E2;
+	E2DOLD=E2D;
+	E3OLD=E3;
+	E3DOLD=E3D;
+	E4OLD=E4;
+	E5OLD=E5;
+	E5DOLD=E5D;
+	E5DDOLD=E5DD;
+	STEP=1;
+	FLAG=0;
+	while STEP<=1
+		if FLAG==1 
+         		STEP=2;
+			X=X+H*XD;
+			E=E+H*ED;
+			ED=ED+H*EDD;
+			EDD=EDD+H*EDDD;
+			E1=E1+H*E1D;
+			E2=E2+H*E2D;
+			E2D=E2D+H*E2DD;
+			E3=E3+H*E3D;
+			E3D=E3D+H*E3DD;
+			E4=E4+H*E4D;
+			E5=E5+H*E5D;
+			E5D=E5D+H*E5DD;
+			E5DD=E5DD+H*E5DDD;
+			T=T+H;
+		end
+		EDDD=W*W*(T-(1./W^2+2.*Z*TAU/W)*EDD-(2.*Z/W+TAU)*ED-E)/TAU;
+ 		XN=E-EDD/WZ^2;
+		XD=XN^2;
+		D=X+GAM;
+		PZ=XN/D;
+		XNP=T*T*PZ;
+		E2DD=W*W*(-(1./W^2+2.*Z*TAU/W)*E2D-(2.*Z/W+TAU)*E2-E1)/TAU;
+		E1D=E2+T;
+		C4=-(E1-E2D/WZ^2)*PZ;
+		E4D=W*W*(-(1./W^2+2.*Z*TAU/W)*E4-(2.*Z/W+TAU)*E3D-E3)/TAU;
+		E3DD=E4+T;
+		C5=-(E3-E4/WZ^2)*PZ;
+		E5DDD=T-W*W*((1./W^2+2.*Z*TAU/W)*E5DD+(2.*Z/W+TAU)*E5D+E5)/TAU;
+		C6=PZ*(-E5+E5DD/WZ^2);
+		FLAG=1;
+	end
+	FLAG=0;
+  	X=.5*(XOLD+X+H*XD);
+	E=.5*(EOLD+E+H*ED);
+	ED=.5*(EDOLD+ED+H*EDD);
+	EDD=.5*(EDDOLD+EDD+H*EDDD);
+	E1=.5*(E1OLD+E1+H*E1D);
+	E2=.5*(E2OLD+E2+H*E2D);
+	E2D=.5*(E2DOLD+E2D+H*E2DD);
+	E3=.5*(E3OLD+E3+H*E3D);
+	E3D=.5*(E3DOLD+E3D+H*E3DD);
+	E4=.5*(E4OLD+E4+H*E4D);
+	E5=.5*(E5OLD+E5+H*E5D);
+	E5D=.5*(E5DOLD+E5D+H*E5DD);
+	E5DD=.5*(E5DDOLD+E5DD+H*E5DDD);
+	if S>=.09999
+		S=0.;
+		count=count+1;
+		ArrayT(count)=T;
+		ArrayC4(count)=C4;
+		ArrayC5(count)=C5;
+		ArrayC6(count)=C6;
+		ArrayXNP(count)=XNP;
+	end
+end
+output=[ArrayT',ArrayC4',ArrayC5',ArrayC6',ArrayXNP'];
+save datfil.txt output -ascii
+disp 'simulation finished'
+clc
+figure
+plot(ArrayT,ArrayXNP),grid
+xlabel('Time (s) ')
+ylabel('NP')	
+axis([0 10 -10 50])

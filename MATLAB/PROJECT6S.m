@@ -1,0 +1,32 @@
+function [YH,YDH,X1H,X2H,X3H,X4H]=project6S(TP,TS,YP,YDP,XNLP,X1HP,X2HP,X3HP,X4HP,W,HP)
+T=0.;
+Y=YP;
+YD=YDP;
+X1=X1HP;
+X2=X2HP;
+X3=X3HP;
+X4=X4HP;
+XNL=XNLP;
+H=HP;
+while T<=(TS-.0001)
+    XNT=X1+X3;
+    YDD=XNT-XNL;
+    YD=YD+H*YDD;
+    Y=Y+H*YD;
+    X1D=X2;
+    X1=X1+H*X1D;
+    X2D=-W*W*X1;
+    X2=X2+H*X2D;
+    X3D=X4;
+    X3=X3+H*X3D;
+    X4D=-9.*W*W*X3;
+    X4=X4+H*X4D;
+	T=T+H;
+end
+YH=Y;
+YDH=YD;
+X1H=X1;
+X2H=X2;
+X3H=X3;
+X4H=X4;
+

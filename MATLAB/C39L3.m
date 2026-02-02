@@ -1,0 +1,208 @@
+clear
+ALT=100000.;
+TAU=.5;
+XNT=161.;
+HEDEG=0.;
+TFMAX=10.;
+XLIM=322.;
+APN=2;
+WCR=50.;
+H=.001;
+TF=3.;
+% APN=0 is PN, APN=1 is OGS, APN=2 is Zero Over Pole
+XNP=3.;
+WACT=150.;
+ZACT=.7;
+TS=.01;
+VC=4000.;
+VM=3000.;
+FR=3.;
+DIAM=1.;
+XL=20.;
+CTW=0.;
+CRW=6.;
+HW=2.;
+CTT=0.;
+CRT=2.;
+HT=2.;
+XN=4.;
+XCG=10.;
+XHL=19.5;
+VM=3000.;
+XNCG=5.;
+ZETA=.7;
+HEDEGFIL=2.;
+A=1000.;
+GAM=.001
+if ALT<=30000
+    RHO=.002378*exp(-ALT/30000.);
+else
+    RHO=.0034*exp(-ALT/22000.);
+end
+WGT=1000.;
+XNLLIN=0.;
+XACC=XCG;
+SWING=.5*HW*(CTW+CRW);
+STAIL=.5*HT*(CTT+CRT);
+SREF=3.1416*DIAM*DIAM/4.;
+XLP=FR*DIAM;
+SPLAN=(XL-XLP)*DIAM+1.33*XLP*DIAM/2.;
+XCPN=2*XLP/3;
+AN=.67*XLP*DIAM;
+AB=(XL-XLP)*DIAM;
+XCPB=(.67*AN*XLP+AB*(XLP+.5*(XL-XLP)))/(AN+AB);
+XCPW=XLP+XN+.7*CRW-.2*CTW;
+XMACH=VM/A;
+XIYY=WGT*(3*((DIAM/2)^2)+XL*XL)/(12*32.2);
+TMP1=(XCG-XCPW)/DIAM;
+TMP2=(XCG-XHL)/DIAM;
+TMP3=(XCG-XCPB)/DIAM;
+TMP4=(XCG-XCPN)/DIAM;
+B=sqrt(XMACH^2-1);
+Q=.5*RHO*VM*VM;
+P1=WGT*XNCG/(Q*SREF);
+Y1=2+8*SWING/(B*SREF)+8*STAIL/(B*SREF);
+Y2=1.5*SPLAN/SREF;
+Y3=8*STAIL/(B*SREF);
+Y4=2*TMP4+8*SWING*TMP1/(B*SREF)+8*STAIL*TMP2/(B*SREF);
+Y5=1.5*SPLAN*TMP3/SREF;
+Y6=8*STAIL*TMP2/(B*SREF);
+P2=Y2-Y3*Y5/Y6;
+P3=Y1-Y3*Y4/Y6;
+ALFTR=(-P3+sqrt(P3*P3+4.*P2*P1))/(2.*P2);
+DELTR=-Y4*ALFTR/Y6-Y5*ALFTR*ALFTR/Y6;
+CNA=2+1.5*SPLAN*ALFTR/SREF+8*SWING/(B*SREF)+8*STAIL/(B*SREF);
+CND=8*STAIL/(B*SREF);
+CMAP=2*TMP4+1.5*SPLAN*ALFTR*TMP3/SREF+8*SWING*TMP1/(B*SREF);
+CMA=CMAP+8*STAIL*TMP2/(B*SREF);
+CMD=8*STAIL*TMP2/(B*SREF);
+XMA=Q*SREF*DIAM*CMA/XIYY;
+XMD=Q*SREF*DIAM*CMD/XIYY;
+ZA=-32.2*Q*SREF*CNA/(WGT*VM);
+ZD=-32.2*Q*SREF*CND/(WGT*VM);
+WZ=sqrt((XMA*ZD-ZA*XMD)/ZD);
+WAF=sqrt(-XMA);
+ZAF=.5*WAF*ZA/XMA;
+XK1=-VM*(XMA*ZD-XMD*ZA)/(1845*XMA);
+XK2=XK1;
+TA=XMD/(XMA*ZD-XMD*ZA);
+XK3=1845*XK1/VM;
+W=(TAU*WCR*(1+2.*ZAF*WAF/WCR)-1)/(2*ZETA*TAU);
+W0=W/sqrt(TAU*WCR);
+Z0=.5*W0*(2*ZETA/W+TAU-WAF^2/(W0*W0*WCR));
+XKC=(-W0^2/WZ^2-1.+2.*Z0*W0*TA)/(1.-2.*Z0*W0*TA+W0*W0*TA*TA);
+XKA=XK3/(XK1*XKC);
+XK0=-W*W/(TAU*WAF*WAF);
+XK=XK0/(XK1*(1+XKC));
+WI=XKC*TA*W0*W0/(1+XKC+W0^2/WZ^2);
+XKR=XK/(XKA*WI);
+XKDC=1.+1845./(XKA*VM);
+n=0;
+for TF=.1:.1:10
+    X=0.;
+    T=0;
+    S=0.;
+    Y=0.;
+    YD=-VM*HEDEG/57.3;
+    XNC=0.;
+    XNL=0.;
+    DELD=0.;
+    DEL=0.;
+    XNLPZ=0.;
+    E=0.;
+    ED=0.;
+    while T<=(TF-1e-5)
+        S=S+H;
+        XOLD=X;
+        YOLD=Y;
+        YDOLD=YD;
+        DELOLD=DEL;
+        DELDOLD=DELD;
+        EOLD=E;
+        EDOLD=ED;
+        STEP=1;
+        FLAG=0;
+        while STEP<=1
+            if FLAG==1
+                STEP=2;
+                X=X+H*XD;
+                Y=Y+H*YD;
+                YD=YD+H*YDD;
+                DEL=DEL+H*DELD;
+                DELD=DELD+H*DELDD;
+                E=E+H*ED;
+                ED=ED+H*EDD;
+                T=T+H;
+            end
+            TGO=TF-T+.0001;
+            RTM=VC*TGO;
+            XLAM=Y/RTM;
+            XLAMD=(Y+YD*TGO)/(VC*TGO*TGO);
+            if APN==0
+                XNC=XNP*VC*XLAMD;
+            elseif APN==1
+                XS=TGO/TAU;
+                TOP=6.*XS*XS*(exp(-XS)-1.+XS);
+                BOT1=2*XS*XS*XS+3.+6.*XS-6.*XS*XS;
+                BOT2=-12.*XS*exp(-XS)-3.*exp(-2.*XS);
+                XNPP=TOP/(.0001+BOT1+BOT2);
+                XNLPZ=XNL*32.2;
+                XNEW=XNPP*XNLPZ*(exp(-XS)+XS-1.)/(XS*XS);
+                XNC=XNPP*VC*XLAMD+.5*XNPP*XNT-XNEW;
+            else
+                XS=TGO/TAU;
+                TEMP1=TGO*TGO*TAU*(exp(-XS)-1.+XS);
+                TOP=-(TGO^3)/(TAU*WZ)+(1.+1./(TAU*WZ))*TEMP1;
+                TEMP2=.5*(1.-3./(TAU*WZ))+XS*(1.+1./(TAU*WZ))-XS*XS;
+                TEMP3=-2.*XS*exp(-XS);
+                TEMP4=2.*exp(-XS)/(TAU*WZ)-.5*exp(-2.*XS)*(1.+1./(TAU*WZ));
+                BOT=GAM+TGO*TGO*TGO/3.+(1.+1./(TAU*WZ))*TAU^3*...
+                    (TEMP2+TEMP3+TEMP4);
+                XNPP=TOP/BOT;
+                C1TH=XNPP/(TGO*TGO);
+                C2TH=XNPP/TGO;
+                C3TH=.5*XNPP;
+                C4TH=-XNPP*(exp(-XS)+XS-1.)/(XS*XS);
+                XNLPZ=XNL*32.2;
+                EPZ=XNLPZ+1/(TAU*WZ);
+                XNC=C1TH*Y+C2TH*YD+C3TH*XNT+C4TH*EPZ;
+            end
+            if XNC>XLIM
+                XNC=XLIM;
+            end
+            if XNC<-XLIM
+                XNC=-XLIM;
+            end
+            XNCG=XNC/32.2;
+            THD=XK3*(E+TA*ED);
+            DELC=XKR*(X+THD);
+            DELDD=WACT*WACT*(DELC-DEL-2.*ZACT*DELD/WACT);
+            EDD=WAF*WAF*(DEL-E-2.*ZAF*ED/WAF);
+            XNL=XK1*(E-EDD/WZ^2);
+            XD=WI*(THD+XKA*(XNL-XNCG*XKDC));
+            XNLPZ=XNL*32.2;
+            YDD=XNT-XNLPZ;
+            FLAG=1;
+        end
+        FLAG=0;
+        X=.5*(XOLD+X+H*XD);
+        Y=.5*(YOLD+Y+H*YD);
+        YD=.5*(YDOLD+YD+H*YDD);
+        DEL=.5*(DELOLD+DEL+H*DELD);
+        DELD=.5*(DELDOLD+DELD+H*DELDD);
+        E=.5*(EOLD+E+H*ED);
+        ED=.5*(EDOLD+ED+H*EDD);
+    end
+    n=n+1;
+    ArrayTF(n)=TF;
+    ArrayY(n)=Y;
+end
+figure
+plot(ArrayTF,ArrayY),grid
+xlabel('Flight Time (Sec)')
+ylabel('Miss (ft)')
+clc
+output=[ArrayTF',ArrayY',];
+save datfil.txt output  -ascii
+disp 'simulation finished'
+

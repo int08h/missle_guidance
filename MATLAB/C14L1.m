@@ -1,0 +1,136 @@
+clear
+count=0;
+VM=3000.;
+VT=1000.;
+XNT=0.;
+RM1IC=.001;
+RM2IC=10000.;
+RT1IC=40000.;
+RT2IC=10000.;
+HEDEG=0.;
+XNP=3.;
+BETA=.8;
+TS=.1;
+SIGNOISE=.001;
+NOISE=1;
+RT1=RT1IC;
+RT2=RT2IC;
+RM1=RM1IC;
+RM2=RM2IC;
+BETAT=0.;
+VT1=-VT*cos(BETAT);
+VT2=VT*sin(BETAT);
+HE=HEDEG/57.3;
+GFILTER=1.-BETA^2;
+HFILTER=(1.-BETA)^2;
+XLAMH=0.;
+XLAMDH=0.;
+XNC=0.;
+T=0.;
+S=0.;
+RTM1=RT1-RM1;
+RTM2=RT2-RM2;
+RTM=sqrt(RTM1^2+RTM2^2);
+XLAM=atan2(RTM2,RTM1);
+XLEAD=asin(VT*sin(BETAT+XLAM)/VM);
+THET=XLAM+XLEAD;
+VM1=VM*cos(THET+HE);
+VM2=VM*sin(THET+HE);
+VTM1=VT1-VM1;
+VTM2=VT2-VM2;
+VC=-(RTM1*VTM1+RTM2*VTM2)/RTM;
+while VC >= 0        
+  	if RTM < 1000
+      		H=.0002;
+   	else
+      		H=.01;
+   	end
+   	BETATOLD=BETAT;
+	RT1OLD=RT1;
+	RT2OLD=RT2;
+	RM1OLD=RM1;
+	RM2OLD=RM2;
+	VM1OLD=VM1;
+   	VM2OLD=VM2;
+   	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+			STEP=2;
+         		BETAT=BETAT+H*BETATD;
+         		RT1=RT1+H*VT1;
+         		RT2=RT2+H*VT2;
+         		RM1=RM1+H*VM1;
+         		RM2=RM2+H*VM2;
+         		VM1=VM1+H*AM1;
+         		VM2=VM2+H*AM2;
+         		T=T+H;
+      		end
+      		THETT=atan2(RT2,RT1);
+      		THETM=atan2(RM2,RM1);
+      		RT=sqrt(RT1^2+RT2^2);
+      		RM=sqrt(RM1^2+RM2^2);
+      		RTM1=RT1-RM1;
+      		RTM2=RT2-RM2;
+      		RTM=sqrt(RTM1^2+RTM2^2);
+      		VTM1=VT1-VM1;
+      		VTM2=VT2-VM2;
+      		VC=-(RTM1*VTM1+RTM2*VTM2)/RTM;
+      		XLAM=atan(RTM2/RTM1);
+      		XLAMD=(RTM1*VTM2-RTM2*VTM1)/(RTM*RTM);
+      		XNC=XNP*VC*XLAMDH;
+      		AM1=-XNC*sin(XLAM);
+      		AM2=XNC*cos(XLAM);
+      		VT1=-VT*cos(BETAT);
+      		VT2=VT*sin(BETAT);
+      		BETATD=XNT/VT;
+      		FLAG=1;
+   	end
+   	FLAG=0;
+ 	BETAT=.5*(BETATOLD+BETAT+H*BETATD);
+ 	RT1=.5*(RT1OLD+RT1+H*VT1);
+	RT2=.5*(RT2OLD+RT2+H*VT2);
+	RM1=.5*(RM1OLD+RM1+H*VM1);
+	RM2=.5*(RM2OLD+RM2+H*VM2);
+	VM1=.5*(VM1OLD+VM1+H*AM1);
+	VM2=.5*(VM2OLD+VM2+H*AM2);
+	S=S+H;
+   	if S>=(TS - 1e-5)
+      		S=0.;
+      		if NOISE==1,
+         		THETTNOISE=SIGNOISE*randn;
+		else
+			THETTNOISE=0.;
+		end;
+      		THETTM=THETT+THETTNOISE;
+      		THETMM=THETM;
+      		RT1M=RT*cos(THETTM);
+      		RT2M=RT*sin(THETTM);
+      		RM1M=RM*cos(THETMM);
+      		RM2M=RM*sin(THETMM);
+      		XLAMM=atan2((RT2M-RM2M),(RT1M-RM1M));
+      		RES=XLAMM-(XLAMH+TS*XLAMDH);
+      		XLAMH=GFILTER*RES+XLAMH+TS*XLAMDH;
+      		XLAMDH=HFILTER*RES/TS+XLAMDH;
+      		XNC=XNP*VC*XLAMDH;
+      		RT1KM=RT1/3280.;      
+      		RT2KM=RT2/3280.;
+      		RM1KM=RM1/3280.;
+      		RM2KM=RM2/3280.;
+      		count=count+1;
+      		ArrayT(count)=T;
+      		ArrayXLAMD(count)=XLAMD;
+      		ArrayXLAMDH(count)=XLAMDH;
+      		ArrayXNCG(count)=XNC/32.2;
+      		ArrayRTM(count)=RTM;
+   	end
+end
+figure
+plot(ArrayT,ArrayXLAMDH),grid
+xlabel('Time (S)')
+ylabel('Line of Sight Rate Estimate(Rad/S) ')
+axis([0 10 -.02 .02])
+clc
+output=[ArrayT',ArrayXLAMD',ArrayXLAMDH',ArrayXNCG',ArrayRTM'];
+save datfil output -ascii
+disp 'simulation finished'

@@ -1,0 +1,96 @@
+clear
+count=0;
+TLAUNCH=300.;
+RDESKM=10000.;
+ALTMKMIC=0.;
+TLOFT=0.;
+VBOLIM=5.;
+XLONGMDEG=60.;
+XLATMDEG=0.;
+XLONGTDEGIC=0.;
+XLATTDEGIC=0.;
+I=1;
+for XLONGFDEG=20:5:200,
+	for XLATFDEG=-60:2.5:60,
+		for TLAUNCH=300:100:1600,
+			ALTM=ALTMKMIC*3280.;
+			A=2.0926E7;
+			GM=1.4077E16;
+			XLONGTDEG=XLONGTDEGIC;
+			XLATTDEG=XLATTDEGIC;
+			PI=3.14159;
+			SWITCH=0;
+			SWITCHM=0;
+			T=0.;
+			S=0.;
+			XLONGF=XLONGFDEG/57.3;
+			XLATF=XLATFDEG/57.3;
+			XF=A*cos(XLATF)*cos(XLONGF);
+			YF=A*cos(XLATF)*sin(XLONGF);
+			ZF=A*sin(XLATF);
+			XLONGT=XLONGTDEG/57.3;
+			XLONGM=XLONGMDEG/57.3;
+			XLATM=XLATMDEG/57.3;
+			XLATT=XLATTDEG/57.3;
+			XT=A*cos(XLATT)*cos(XLONGT);
+			YT=A*cos(XLATT)*sin(XLONGT);
+			ZT=A*sin(XLATT);
+			XM=(A+ALTM)*cos(XLATM)*cos(XLONGM);
+			YM=(A+ALTM)*cos(XLATM)*sin(XLONGM);
+			ZM=(A+ALTM)*sin(XLATM);
+			DISTFKM=distance3dkm(XF,YF,ZF,XT,YT,ZT);
+			TFTOT=252.+.223*DISTFKM-(5.44E-6)*DISTFKM*DISTFKM;
+			TFTOT=TFTOT+TLOFT;
+			for TF=(TLAUNCH+60.):50:(TFTOT-50.),
+				TGOLAM=TFTOT-T;
+% CALCULATE TARGET VELOCITY REQUIRED TO REACH ITS DESTINATION
+				[VRX,VRY,VRZ]=LAMBERT3D(XT,YT,ZT,TGOLAM,XF,YF,ZF,SWITCH);
+				XTD=VRX;
+				YTD=VRY;
+				ZTD=VRZ;
+% CALCULATE TARGET STATES AT DESIRED INTERCEPT TIME
+				T0=0.;
+				T1=TF;
+				X0(1)=XT/3280.;
+				X0(2)=YT/3280.;
+				X0(3)=ZT/3280.;
+				X0(4)=XTD/3280.;
+				X0(5)=YTD/3280.;
+				X0(6)=ZTD/3280.;
+				[X1]=KEPLER1(X0,T0,T1);
+				XTF=X1(1)*3280.;
+				YTF=X1(2)*3280.;
+				ZTF=X1(3)*3280.;
+				ALTFKM=(sqrt(XTF^2+YTF^2+ZTF^2)-A)/3280.;
+				if ALTFKM<50.
+					break
+				end
+% CALCULATE MISSILE VELOCITY REQUIRED TO INTERCEPT TARGET AT DESIRED INTERCEPT TIME
+				TGOLAMM=TF-TLAUNCH;
+				[VRXM,VRYM,VRZM]=LAMBERT3D(XM,YM,ZM,TGOLAMM,XTF,YTF,ZTF,SWITCHM);
+				XMD=VRXM;
+				YMD=VRYM;
+				ZMD=VRZM;
+				VBOM=sqrt(XMD^2+YMD^2+ZMD^2)/3280.;
+				VBOT=sqrt(XTD^2+YTD^2+ZTD^2)/3280.;
+				if (VBOM<VBOLIM & VBOT<7.5)
+					count=count+1;
+					ArrayTF(count)=TF;
+					ArrayTLAUNCH(count)=TLAUNCH;
+					ArrayXLONGF(count)=XLONGFDEG*111.;
+					ArrayXLATF(count)=XLATFDEG*111.;
+					ArrayVBOM(count)=VBOM;
+				end
+			end
+		end
+	end
+end
+figure
+plot(ArrayXLONGF,ArrayXLATF,'r+'),grid
+xlabel('Downrange (km)')
+ylabel('Crossrange (km) ')
+clc
+output=[ArrayTF',ArrayTLAUNCH',ArrayXLONGF',ArrayXLATF',ArrayVBOM'];
+save datfil.txt output -ascii
+disp 'simulation finished'
+	

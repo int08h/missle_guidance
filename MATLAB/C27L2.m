@@ -1,0 +1,122 @@
+clear
+count=1;
+XNT=96.6;
+XNP=3;
+TF=10.;
+TS=.1;
+BETA=.8;
+TAP=.2;
+VC=4000.;
+T=0.;
+S=0.;
+S2=0.;
+TS2=.02;
+TP=T+.00001;
+X1=0;
+X2=0;
+X3=1;
+X4=0.;
+X5=0.;
+Y1OLD=0.;
+Y2OLD=0.;
+Y3OLD=0.;
+Y4OLD=0.;
+Y5OLD=0.;
+Y6OLD=0.;
+Y7OLD=0.;
+Y8OLD=0.;
+Y9OLD=0.;
+Y10OLD=0.;
+Y11OLD=0.;
+Y11NEW=0.;
+Y10NEW=0.;
+Y9NEW=0.;
+Y7NEW=0.;
+Y6NEW=0.;
+Y8NEW=0.;
+Y4NEW=0.;
+Y1NEW=0.;
+Y2NEW=0.;
+Y3NEW=0.;
+Y5NEW=0.;
+H=.001;
+GFILTER=1.-BETA^2;
+HFILTER=(1.-BETA)^2;
+XMNT=0.;
+while TP<=(TF-1e-5)
+	S=S+H;
+	S2=S2+H;
+	X1OLD=X1;
+	X2OLD=X2;
+	X3OLD=X3;
+	X4OLD=X4;
+	X5OLD=X5;
+	STEP=1;
+	FLAG=0;
+	while STEP<=1
+      		if FLAG==1
+         		STEP=2;
+			X1=X1+H*X1D;
+			X2=X2+H*X2D;
+			X3=X3+H*X3D;
+			X4=X4+H*X4D;
+			X5=X5+H*X5D;
+			TP=TP+H;
+		end
+		TGO=TP;
+		X1D=X2;
+		X2D=X3+Y4NEW/(VC*TGO);
+		X3D=(Y4NEW)/(VC*TGO*TGO);
+		X4D=-X2-X4/TAP;
+		X5D=X4/TAP;
+		FLAG=1;
+   	end
+   	FLAG=0;
+	X1=(X1OLD+X1)/2+.5*H*X1D;
+	X2=(X2OLD+X2)/2+.5*H*X2D;
+	X3=(X3OLD+X3)/2+.5*H*X3D;
+	X4=(X4OLD+X4)/2+.5*H*X4D;
+	X5=(X5OLD+X5)/2+.5*H*X5D;
+	if S>=(TS-.0001)
+		S=0.;
+		Y1NEW=X5;
+		TEMP1=(Y1NEW-Y1OLD)*XNP*VC;
+		TEMP2=HFILTER*(Y2OLD+TEMP1)/TS+GFILTER*Y3OLD;
+		Y2NEW=TEMP1+Y2OLD+TS*(Y3OLD-TEMP2);
+		Y3NEW=Y3OLD-TEMP2;
+		Y7NEW=TEMP2+Y7OLD;
+		Y1OLD=Y1NEW;
+		Y2OLD=Y2NEW;
+		Y3OLD=Y3NEW;
+		Y7OLD=Y7NEW;
+	end
+	if S2>=(TS2-.0001)
+		S2=0.;
+		Y6NEW=Y7NEW;
+		Y11NEW=.2*(Y6NEW-Y6OLD);
+		Y10NEW=Y11OLD+Y11NEW;
+		Y9NEW=Y10OLD+Y11NEW;
+		Y8NEW=Y9OLD+Y11NEW;
+		Y5NEW=Y8OLD+Y11NEW;
+		Y4NEW=Y4OLD+Y5OLD+Y11NEW;
+		Y4OLD=Y4NEW;
+		Y6OLD=Y6NEW;
+		Y5OLD=Y5NEW;
+		Y8OLD=Y8NEW;
+		Y9OLD=Y9NEW;
+		Y10OLD=Y10NEW;
+		Y11OLD=Y11NEW;
+		XMNT=XNT*X1;
+		count=count+1;
+      		ArrayTP(count)=TP;
+      		ArrayXMNT(count)=XMNT;
+	end
+end
+figure
+plot(ArrayTP,ArrayXMNT),grid
+xlabel('Flight Time (Sec)')
+ylabel('Target Maneuver Miss (Ft)')
+clc
+output=[ArrayTP',ArrayXMNT'];
+save datfil.txt output  -ascii
+disp 'simulation finished'

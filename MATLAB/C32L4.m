@@ -1,0 +1,109 @@
+clear
+n=0;
+GAIN=1.;
+XT=-4000.;
+YT=5000.;
+PHIADDEG=10.;
+PHIBDDEG=5.;
+PHIDMAXDEG=15.;
+TF=100.;
+ACCERR=0.;
+%This takes about 5 minutes on a 400 MHz G3. Larger integration intervals are not as accurate
+H=.01;
+TS=.1;
+XNC=12.;
+PHIDMAX=PHIDMAXDEG/57.3;
+PHI=0.;
+XM=0.;
+YM=0.;
+XMD=0.;
+YMD=0.;
+PHIAD=PHIADDEG/57.3;
+PHIBD=PHIBDDEG/57.3;
+S=0.;
+T=0.;
+while T<=(TF-.00001)
+	XMOLD=XM;
+	YMOLD=YM;
+	XMDOLD=XMD;
+	YMDOLD=YMD;
+	PHIOLD=PHI;
+	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+         		STEP=2;
+			XM=XM+H*XMD;
+			YM=YM+H*YMD;
+			XMD=XMD+H*XMDD;
+			YMD=YMD+H*YMDD;
+			PHI=PHI+H*PHID;
+			T=T+H;
+		end
+		SLOPE=(PHIBD-PHIAD)/TF;
+		BINT=PHIBD-SLOPE*TF;
+		PHID=SLOPE*T+BINT;
+		if PHID>PHIDMAX
+			PHID=PHIDMAX;
+		end
+		if PHID<-PHIDMAX
+			PHID=-PHIDMAX;
+		end
+		XMDD=XNC*cos(PHI);
+		YMDD=XNC*sin(PHI);
+		FLAG=1;
+	end
+	FLAG=0;
+	XM=(XMOLD+XM)/2+.5*H*XMD;
+	YM=(YMOLD+YM)/2+.5*H*YMD;
+	XMD=(XMDOLD+XMD)/2+.5*H*XMDD;
+	YMD=(YMDOLD+YMD)/2+.5*H*YMDD;
+	PHI=(PHIOLD+PHI)/2.+.5*H*PHID;
+	S=S+H;
+	if S>=(TS-.0001)
+ 		S=0.;
+		[X1,Y1]=PREDICT1(T,XM,YM,XMD,YMD,PHI,TF,PHIAD,PHIBD,XNC,H,PHIDMAX,ACCERR);
+		DELX=XT-X1;
+		DELY=YT-Y1;
+		PHIBD2=PHIBD+.001;
+		[X2,Y2]=PREDICT1(T,XM,YM,XMD,YMD,PHI,TF,PHIAD,PHIBD2,XNC,H,PHIDMAX,ACCERR);
+		DXDPB=(X2-X1)/(PHIBD2-PHIBD);
+		DYDPB=(Y2-Y1)/(PHIBD2-PHIBD);
+		PHIAD3=PHIAD+.001;
+		[X3,Y3]=PREDICT1(T,XM,YM,XMD,YMD,PHI,TF,PHIAD3,PHIBD,XNC,H,PHIDMAX,ACCERR);
+		DXDPA=(X3-X1)/(PHIAD3-PHIAD);
+		DYDPA=(Y3-Y1)/(PHIAD3-PHIAD);
+		if (DXDPB*DYDPA-DXDPA*DYDPB)==0
+			DELPHIAD=0.;
+			DELPHIBD=0.;
+		else
+			DELPHIAD=(DXDPB*DELY-DELX*DYDPB)/(DXDPB*DYDPA-DXDPA*DYDPB);
+			DELPHIBD=(DELX*DYDPA-DXDPA*DELY)/(DXDPB*DYDPA-DXDPA*DYDPB);
+     		end
+		PHIAD=PHIAD+GAIN*DELPHIAD;
+		PHIBD=PHIBD+GAIN*DELPHIBD;
+		PHIDDEG=PHID*57.3;
+		n=n+1;
+		ArrayT(n)=T;
+		ArrayXM(n)=XM;
+		ArrayYM(n)=YM;
+		ArrayXT(n)=XT;
+		ArrayYT(n)=YT;
+		ArrayPHIDDEG(n)=PHIDDEG;
+	end
+end
+RTM=sqrt((XT-XM)^2+(YT-YM)^2);
+RTM
+figure
+plot(ArrayXM,ArrayYM,ArrayXT,ArrayYT),grid
+xlabel('X (Ft)')
+ylabel('Y (Ft)')
+figure
+plot(ArrayT,ArrayPHIDDEG),grid
+xlabel('Time (Sec)')
+ylabel('Roll Rate (Deg/Sec)')
+clc
+output=[ArrayT',ArrayXM',ArrayYM',ArrayXT',ArrayYT',ArrayPHIDDEG'];
+save datfil output  -ascii
+disp 'simulation finished'
+	

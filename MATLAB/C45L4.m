@@ -1,0 +1,537 @@
+clear
+count=0;
+PHIS=576;
+TLAUNCH=80.;
+TF=230.;
+TS=.1;
+XLONGMDEGICKM=400.;
+XLONGS2DEGKM=500.;
+RDESKM=10000.;
+GAMDEG=89.99;
+TFTOT=2000.;
+TUPT=20.;
+TGUID=100.;
+XNCLIM=322.;
+XNP=3.;
+QPERFECT=0;
+TLOFT=500.;
+ALTMKMIC=15.;
+QTAYLOR=1;
+PIPERRKM=0.;
+QGUID=1;
+ITGT=2;
+DELTF=0.;
+QFIX=0;
+SIGTHET1=.00005;
+THOM=10.;
+BIAS1=0.;
+RUN=50;
+VMRQDKMIC=4.;	
+if ITGT==1
+	TPZ=180.;
+else
+	TPZ=240.;
+end	
+SIGTHET2=SIGTHET1;
+XLONGS1DEGKM=XLONGMDEGICKM;
+ORDER=3;
+ALTM=ALTMKMIC*3280.;
+TFTOT=252.+.223*RDESKM-(5.44E-6)*RDESKM*RDESKM;
+TFTOT=TFTOT+TLOFT;
+for JJ=1:RUN,
+	SWITCHM=0;
+	SWITCH1=0;
+	A=2.0926E7;
+	GM=1.4077E16;
+	W=0.;
+	XLONGFDEG=57.3*RDESKM*3280./A;
+	XLONGMDEGIC=XLONGMDEGICKM/111.;
+	XLONGMDEG=XLONGMDEGIC;
+	XLONGS1DEG=XLONGS1DEGKM/111.;
+	XLONGS2DEG=XLONGS2DEGKM/111.;
+	QLAUNCH=0;
+	QFIRST=1;
+	XLONGTDEG=0.;
+	QBOOST=1;
+	QOOMPH=1;
+	T=0.;
+	S=0.;
+	AXT=0.;
+	AYT=0.;
+	ATP=0.;
+	XLONGF=XLONGFDEG/57.3;
+	XLONGF=XLONGF-W*TFTOT;
+	PIPERR=0.;
+	XF=A*cos(XLONGF);
+	YF=A*sin(XLONGF);
+	ZF=0;
+	XLONGT=XLONGTDEG/57.3;
+	XLONGM=XLONGMDEG/57.3;
+	XLONGS1=XLONGS1DEG/57.3;
+	XLONGS2=XLONGS2DEG/57.3;
+	XT=A*cos(XLONGT);
+	YT=A*sin(XLONGT);
+	ZT=0;
+	XTINIT=XT;
+	YTINIT=YT;
+	ZTINIT=0;
+	RTINIT=sqrt(XTINIT^2+YTINIT^2);
+	XM=(A+ALTM)*cos(XLONGM);
+	YM=(A+ALTM)*sin(XLONGM);
+	ZM=0;
+	XS1=(A+ALTM)*cos(XLONGS1);
+	YS1=(A+ALTM)*sin(XLONGS1);
+	XS2=(A+ALTM)*cos(XLONGS2);
+	YS2=(A+ALTM)*sin(XLONGS2);
+	XFIRST=XT;
+	YFIRST=YT;
+	ZFIRST=0;
+	DISTRTKMIC=distance3dkm(XT,YT,ZT,XFIRST,YFIRST,ZFIRST);
+	XMINIT=XM;
+	YMINIT=YM;
+	RMINIT=sqrt(XMINIT^2+YMINIT^2);
+	XTD=cos(1.5708-GAMDEG/57.3);
+	YTD=sin(1.5708-GAMDEG/57.3);
+	ATP=1.;
+	AXM=0.;
+	AYM=0.;
+	AMP=0.;
+	H=.01;
+	ALTTKM=(sqrt(XT^2+YT^2)-A)/3280.;
+	XMD=0.;
+	YMD=0.;
+	RTM1=XT-XM;
+	RTM2=YT-YM;
+	RTM=sqrt(RTM1^2+RTM2^2);
+	VTM1=XTD-XMD;
+	VTM2=YTD-YMD;
+	VC=-(RTM1*VTM1+RTM2*VTM2)/RTM;
+	DELV=0.;
+	ACC=0.;
+	AXMGUID=0.;
+	AYMGUID=0.;
+	PREDERRKM=0.;
+	ZEM1=0.;
+	ZEM2=0.;
+	ALTMKM=(sqrt(XM^2+YM^2)-A)/3280.;
+	TBOT=0.;
+	DELVELM=0.;
+	PIPKMBO=0.;
+	ZEMPERPTOT=0.;
+	if QFIX==1
+		[XTFACT,YTFACT]=predict45(T,XT,YT,XTD,YTD,TF,TFTOT,TUPT,XF,YF,ITGT);
+		ZTFACT=0;
+		TGOLAM=TF-TLAUNCH;
+		XLONGM=atan2(YM,XM);
+		XLONGT=atan2(YTFACT,XTFACT);
+		[VRX,VRY,VRZ]=LAMBERT3D(XM,YM,ZM,TGOLAM,XTFACT,YTFACT,ZTFACT,SWITCHM);
+		VMXRQD=VRX;
+		VMYRQD=VRY;
+		VMRQDKM=sqrt(VMXRQD^2+VMYRQD^2)/3280.
+	else
+		for TF=(TLAUNCH+30.):10:(TPZ-10.),
+			[XTFACT,YTFACT]=predict45(T,XT,YT,XTD,YTD,TF,TFTOT,TUPT,XF,YF,ITGT);
+			ZTFACT=0;
+            TGOLAM=TF-TLAUNCH;
+			XLONGM=atan2(YM,XM);
+			XLONGT=atan2(YTFACT,XTFACT);
+			[VRX,VRY,VRZ]=LAMBERT3D(XM,YM,ZM,TGOLAM,XTFACT,YTFACT,ZTFACT,SWITCHM);
+ 			VMXRQD=VRX;
+			VMYRQD=VRY;
+			VMRQDKM=sqrt(VMXRQD^2+VMYRQD^2)/3280.;
+			if VMRQDKM<VMRQDKMIC
+				break
+			end
+		end
+	end
+ 	TF=TF+DELTF;
+ 	XH=0.;
+	XDH=0.;
+	XDDH=0.;
+	YH=0.;
+	YDH=0.;
+	YDDH=0.;
+	PHI=zeros([3,3]);
+	P=zeros([3,3]);
+	Q=zeros([3,3]);
+	IDNPZ=eye(3);
+	P(1,1)=99999999999.;
+ 	P(2,2)=99999999999.;
+	P(3,3)=99999999999.;
+	PP(1,1)=99999999999.;
+ 	PP(2,2)=99999999999.;
+	PP(3,3)=99999999999.;
+	PHI(1,1)=1;
+	PHI(1,2)=TS;
+	PHI(1,3)=.5*TS*TS;
+	PHI(2,2)=1;
+	PHI(2,3)=TS;
+	PHI(3,3)=1;
+	HMAT(1,1)=1.;
+	HMAT(1,2)=0.;
+	HMAT(1,3)=0.;
+	PHIT=PHI';
+	HT=HMAT';
+	Q(1,1)=PHIS*TS^5/20;
+	Q(1,2)=PHIS*TS^4/8;
+	Q(1,3)=PHIS*TS^3/6;
+	Q(2,1)=Q(1,2);
+	Q(2,2)=PHIS*TS^3/3;
+	Q(2,3)=PHIS*TS*TS/2;
+	Q(3,1)=Q(1,3);
+	Q(3,2)=Q(2,3);
+	Q(3,3)=PHIS*TS;
+	XN=0.;
+ 	while ~((T>(TF-10.)) & VC<0.)
+ 		if RTM<1000
+			H=.00001;
+		else
+			H=.01;
+		end
+		XTOLD=XT;
+		YTOLD=YT;
+		XTDOLD=XTD;
+		YTDOLD=YTD;
+		XMOLD=XM;
+		YMOLD=YM;
+		XMDOLD=XMD;
+		YMDOLD=YMD;
+		DELVOLD=DELV;
+		STEP=1;
+		FLAG=0;
+		while STEP <=1
+			if FLAG==1
+				STEP=2;
+				XT=XT+H*XTD;
+				YT=YT+H*YTD;
+				XTD=XTD+H*XTDD;
+				YTD=YTD+H*YTDD;
+				XM=XM+H*XMD;
+				YM=YM+H*YMD;
+				XMD=XMD+H*XMDD;
+				YMD=YMD+H*YMDD;
+				DELV=DELV+H*DELVD;
+				T=T+H;
+			end
+			if ITGT==1
+				if T<180
+					WGT=-212.*T+44000.;
+					TRST=54100.;
+				else
+					WGT=3300.;
+					TRST=0.;
+				end
+			else
+				if T<120.
+					WGT=-2622*T+440660.;
+					TRST=725850.;
+				elseif T<240.
+					WGT=-642.*T+168120.;
+					TRST=182250.;
+				else
+					WGT=5500.;
+					TRST=0.;
+				end
+			end
+			ATP=32.2*TRST/WGT;
+ 			TEMPBOTT=(XT^2+YT^2)^1.5;
+			XTDD=-GM*XT/TEMPBOTT+AXT;
+			YTDD=-GM*YT/TEMPBOTT+AYT;
+ 			RTM1=XT-XM;
+			RTM2=YT-YM;
+			VTM1=XTD-XMD;
+			VTM2=YTD-YMD;
+			RTM=sqrt(RTM1^2+RTM2^2);
+			VC=-(RTM1*VTM1+RTM2*VTM2)/RTM;
+			TGO=RTM/VC;
+			ACCDOTRTM=(XTDD*RTM1+YTDD*RTM2)/RTM;
+			ACCPER1=XTDD-ACCDOTRTM*RTM1/RTM;
+			ACCPER2=YTDD-ACCDOTRTM*RTM2/RTM;
+			ACCPERPTOT=sqrt(ACCPER1^2+ACCPER2^2)/32.2;
+			if (T>TGUID & TGO<THOM)
+				TEMPBOTM=(XM^2+YM^2)^1.5;
+				XMDDGRAV=-GM*XM/TEMPBOTM;
+				YMDDGRAV=-GM*YM/TEMPBOTM;
+				ZEM1=RTM1+VTM1*TGO+.5*(XTDD-XMDDGRAV)*TGO^2;
+				ZEM2=RTM2+VTM2*TGO+.5*(YTDD-YMDDGRAV)*TGO^2;
+				ZEMDOTRTM=(ZEM1*RTM1+ZEM2*RTM2)/RTM;
+				ZEMPER1=ZEM1-ZEMDOTRTM*RTM1/RTM;
+				ZEMPER2=ZEM2-ZEMDOTRTM*RTM2/RTM;
+				ZEMPERPTOT=sqrt(ZEMPER1^2+ZEMPER2^2)/3280.;
+				AXMGUID=XNP*ZEMPER1/(TGO^2);
+				AYMGUID=XNP*ZEMPER2/(TGO^2);
+				TGO=RTM/VC;
+				if QGUID==0
+					XNCLIM=0.;
+				end
+				if AXMGUID>XNCLIM
+					AXMGUID=XNCLIM;
+				elseif AXMGUID<-XNCLIM
+					AXMGUID=-XNCLIM;
+				end
+				if AYMGUID>XNCLIM
+					AYMGUID=XNCLIM;
+				elseif AYMGUID<-XNCLIM
+					AYMGUID=-XNCLIM;
+				end
+			end
+			if T<=TGUID
+				AXMGUID=0.;
+				AYMGUID=0.;
+			end
+			if T>TLAUNCH
+				TEMPBOTM=(XM^2+YM^2)^1.5;
+				XMDD=-GM*XM/TEMPBOTM+AXMGUID;
+				YMDD=-GM*YM/TEMPBOTM+AYMGUID;
+			else
+				XMDD=0.;
+				YMDD=0.;
+			end
+			ACCNEW=sqrt(AXMGUID^2+AYMGUID^2);
+			DELVD=ACCNEW;
+			ALTMKM=(sqrt(XM^2+YM^2)-A)/3280.;
+			FLAG=1;
+		end
+		FLAG=0;
+ 		XT=.5*(XTOLD+XT+H*XTD);
+ 		YT=.5*(YTOLD+YT+H*YTD);
+		XTD=.5*(XTDOLD+XTD+H*XTDD);
+ 		YTD=.5*(YTDOLD+YTD+H*YTDD);
+		XM=.5*(XMOLD+XM+H*XMD);
+		YM=.5*(YMOLD+YM+H*YMD);
+		XMD=.5*(XMDOLD+XMD+H*XMDD);
+ 		YMD=.5*(YMDOLD+YMD+H*YMDD);
+		DELV=.5*(DELVOLD+DELV+H*DELVD);
+		S=S+H;
+		if QBOOST==1
+			TGOLAM=TFTOT-T;
+			XLONGM=atan2(YT,XT);
+			XLONGT=atan2(YF,XF);
+			[VRX,VRY,VRZ]=LAMBERT3D(XT,YT,ZT,TGOLAM,XF,YF,ZF,SWITCH1);
+   			VTX=VRX;
+      			VTY=VRY;
+			DELVXT=VTX-XTD;
+			DELVYT=VTY-YTD;
+			VELT=sqrt(XTD^2+YTD^2);
+			DELVELT=sqrt(DELVXT^2+DELVYT^2);
+			if (T<TPZ & DELVELT>500.)
+				AXT=ATP*DELVXT/DELVELT;
+				AYT=ATP*DELVYT/DELVELT;
+			elseif DELVELT<500.
+				TRST=0.;
+				QBOOST=0;
+				AXT=0.;
+				AYT=0.;
+				XTD=VTX;
+				XTDOLD=XTD;
+				YTD=VTY;
+				YTDOLD=YTD;
+				TBOT=T;
+			else
+				QBOOST=0;
+				QOOMPH=0;
+				AXT=0.;
+				AYT=0.;
+				TBOT=T;
+			end
+		end
+		if T<TUPT
+			RTMAG=sqrt(XT^2+YT^2);
+			AXT=ATP*XT/RTMAG;
+			AYT=ATP*YT/RTMAG;
+		end
+		if T>=TLAUNCH
+			TGOLAMM=TF-T;
+			if QPERFECT==1
+				XTF=XTFACT;
+				YTF=YTFACT;
+			elseif (QPERFECT==0 & QTAYLOR==1)
+				TGOM=TF-T;
+				XTF=XT+XTD*TGOM+.5*XTDD*TGOM*TGOM;
+				YTF=YT+YTD*TGOM+.5*YTDD*TGOM*TGOM;
+			end
+			ZTF=0;
+			QLAUNCH=1;
+			PIPERR=sqrt((XTF-XTFACT)^2+(YTF-YTFACT)^2)/3280.;
+		end
+		TGOLAMM=TF-T;
+		if (T>=TLAUNCH & QFIRST==1)
+			QFIRST=0;
+			TGOPZ=TF-TLAUNCH;
+			[VRX,VRY,VRZ]=LAMBERT3D(XM,YM,ZM,TGOPZ,XTF,YTF,ZTF,SWITCHM);
+			VMXRQD=VRX;
+			VMYRQD=VRY;
+			VMRQDKM=sqrt(VMXRQD^2+VMYRQD^2)/3280.;
+			XMD=VMXRQD;
+			XMDOLD=XMD;
+			YMD=VMYRQD;
+			YMDOLD=YMD;
+		end
+		if S>=(TS-.0001)
+			S=0.;
+			THET1=atan2(YS1-YT,XS1-XT);
+			THET2=atan2(YS2-YT,XS2-XT);
+			THET1NOISE=SIGTHET1*randn;;
+			THET2NOISE=SIGTHET2*randn;;
+			THET1S=THET1+THET1NOISE+BIAS1;
+			THET2S=THET2+THET2NOISE;
+			TOP1=XS2*tan(THET2S)-XS1*tan(THET1S)+YS1-YS2;
+			XTS=TOP1/(tan(THET2S)-tan(THET1S));
+			TOP2=XS2*tan(THET2S)*tan(THET1S)-XS1*tan(THET1S)*tan(THET1S)...
+			+tan(THET1S)*(YS1-YS2);
+     			YTS=YS1-XS1*tan(THET1S)+TOP2/(tan(THET2S)-tan(THET1S));	
+			XTNOISE=XT-XTS;
+			YTNOISE=YT-YTS;
+			DXDT1=(tan(THET2)*(XS2-XS1)+YS1-YS2)/((cos(THET1)*(tan(THET2)...
+						-tan(THET1)))^2);
+			DXDT2=(tan(THET1)*(XS1-XS2)+YS2-YS1)/((cos(THET2)*(tan(THET2)-...
+     			tan(THET1)))^2);
+     			SIGX=sqrt((DXDT1*SIGTHET1)^2+(DXDT2*SIGTHET2)^2);
+     			DYDT1=-XS1/(cos(THET1)*cos(THET1));
+     			DYDT1=DYDT1+(XS2*tan(THET2)*tan(THET2)-2.*XS1*tan(THET1)*...
+							 tan(THET2)+(YS1-YS2)*tan(THET2)+XS1*tan(THET1)...
+							 *tan(THET1))/((cos(THET1)*(tan(THET2)...
+							-tan(THET1)))^2);
+     			DYDT2=(tan(THET1)*tan(THET1)*(XS1-XS2)-(YS1-YS2)*...
+     			tan(THET1))/((cos(THET2)*(tan(THET2)-tan(THET1)))^2);
+     			SIGY=sqrt((DYDT1*SIGTHET1)^2+(DYDT2*SIGTHET2)^2);
+			XN=XN+1.;
+			XK1=3*(3*XN*XN-3*XN+2)/(XN*(XN+1)*(XN+2));
+			XK2=18*(2*XN-1)/(XN*(XN+1)*(XN+2)*TS);
+			XK3=60/(XN*(XN+1)*(XN+2)*TS*TS);
+			RMAT(1,1)=SIGX^2;
+			PHIP=PHI*P;
+			PHIPPHIT=PHIP*PHIT;
+			M=PHIPPHIT+Q;
+			HM=HMAT*M;
+			HMHT=HM*HT;
+			HMHTR=HMHT+RMAT;
+			HMHTRINV(1,1)=1./HMHTR(1,1);
+			MHT=M*HT;
+			K=MHT*HMHTRINV;
+			KH=K*HMAT;
+			IKH=IDNPZ-KH;
+			P=IKH*M;
+			if XN<10.
+				XK1PZ=XK1;
+				XK2PZ=XK2;
+				XK3PZ=XK3;
+			else
+				XK1PZ=K(1,1);
+				XK2PZ=K(2,1);
+				XK3PZ=K(3,1);
+			end
+			RES=XTS-XH-TS*XDH-.5*TS*TS*XDDH;
+			XH=XH+XDH*TS+.5*TS*TS*XDDH+XK1PZ*RES;
+			XDH=XDH+XDDH*TS+XK2PZ*RES;
+			XDDH=XDDH+XK3PZ*RES;
+			RMATP(1,1)=SIGY^2;
+			PHIPP=PHI*PP;
+			PHIPPHITP=PHIPP*PHIT;
+			MP=PHIPPHITP+Q;
+			HMP=HMAT*MP;
+			HMHTP=HMP*HT;
+			HMHTRP=HMHTP+RMATP;
+			HMHTRINVP(1,1)=1./HMHTRP(1,1);
+			MHTP=MP*HT;
+			KP=MHTP*HMHTRINVP;
+			KHP=KP*HMAT;
+			IKHP=IDNPZ-KHP;
+			PP=IKHP*MP;
+			if XN<10.
+				XK1PZP=XK1;
+				XK2PZP=XK2;
+				XK3PZP=XK3;
+			else
+				XK1PZP=KP(1,1);
+				XK2PZP=KP(2,1);
+				XK3PZP=KP(3,1);
+			end
+			RESP=YTS-YH-TS*YDH-.5*TS*TS*YDDH;
+			YH=YH+YDH*TS+.5*TS*TS*YDDH+XK1PZP*RESP;
+			YDH=YDH+YDDH*TS+XK2PZP*RESP;
+			YDDH=YDDH+XK3PZP*RESP;
+			if (T>TGUID & TGO>THOM)
+				RTM1H=XH-XM;
+				RTM2H=YH-YM;
+				RTMH=sqrt(RTM1H^2+RTM2H^2);
+				VTM1H=XDH-XMD;
+				VTM2H=YDH-YMD;
+				VCH=-(RTM1H*VTM1H+RTM2H*VTM2H)/RTMH;
+				TGOH=RTMH/VCH;
+				TEMPBOTM=(XM^2+YM^2)^1.5;
+				XMDDGRAV=-GM*XM/TEMPBOTM;
+				YMDDGRAV=-GM*YM/TEMPBOTM;
+				ZEM1H=RTM1H+VTM1H*TGOH+.5*(XDDH-XMDDGRAV)*TGOH^2;
+				ZEM2H=RTM2H+VTM2H*TGOH+.5*(YDDH-YMDDGRAV)*TGOH^2;
+				ZEMDOTRTMH=(ZEM1H*RTM1H+ZEM2H*RTM2H)/RTMH;
+				ZEMPER1H=ZEM1H-ZEMDOTRTMH*RTM1H/RTMH;
+				ZEMPER2H=ZEM2H-ZEMDOTRTMH*RTM2H/RTMH;
+				AXMGUID=XNP*ZEMPER1H/(TGOH^2);
+				AYMGUID=XNP*ZEMPER2H/(TGOH^2);
+				if QGUID==0
+					XNCLIM=0.;
+				end
+				if AXMGUID>XNCLIM
+					AXMGUID=XNCLIM;
+				elseif AXMGUID<-XNCLIM
+					AXMGUID=-XNCLIM;
+				end
+				if AYMGUID>XNCLIM
+					AYMGUID=XNCLIM;
+				elseif AYMGUID<-XNCLIM
+					AYMGUID=-XNCLIM;
+				end
+			end
+			if RUN==1
+				
+			end
+		end
+		if RUN==1
+			ERRXTDD=(XTDD-XDDH)/32.2;
+			SP33X=sqrt(P(3,3))/32.2;
+			SP33XP=-SP33X;
+			ERRYTDD=(YTDD-YDDH)/32.2;
+			SP33Y=sqrt(PP(3,3))/32.2;
+			SP33YP=-SP33Y;
+			count=count+1;
+			ArrayT(count)=T;
+			ArrayERRXTDD(count)=ERRXTDD;
+			ArraySP33X(count)=SP33X;
+			ArraySP33XP(count)=SP33XP;
+		end
+	end
+    count=count+1;
+	ArrayJJ(count)=count;
+	ArrayRTM(count)=RTM;
+	ArrayDELV(count)=DELV/3.28;
+end
+if RUN==1
+    figure
+    plot(ArrayT,ArrayERRXTDD,ArrayT,ArraySP33X,ArrayT,ArraySP33XP),grid
+    xlabel('Time (s)')
+    ylabel('Acceleration Error (f/s) ')
+    axis([0 240 -10 10])
+    clc
+    output=[ArrayT',ArrayERRXTDD',ArraySP33X',ArraySP33XP'];
+    save datfil.txt output -ascii
+else
+    figure
+    plot(ArrayJJ,ArrayRTM),grid
+    xlabel('Run')
+    ylabel('Miss (ft) ')
+    figure
+    plot(ArrayJJ,ArrayDELV),grid
+    xlabel('Run')
+    ylabel('Divert (m/s) ')
+    clc
+    output=[ArrayJJ',ArrayRTM',ArrayDELV'];
+    %save ('datfil.txt', 'output', '-ascii')
+	save datfil.txt output -ascii
+    RTMSORT=sort(ArrayRTM)
+    DELVSORT=sort(ArrayDELV)
+    RTM90=RTMSORT(45)
+    DELV90=DELVSORT(45)
+end
+disp 'simulation finished'
+

@@ -1,0 +1,15 @@
+function [XH,XDH]=projectc12l2(TP,TS,XP,XDP,BETAINVP,HP)
+T=0.;
+X=XP;
+XD=XDP;
+BETAINV=BETAINVP;
+H=HP;
+while T<=(TS-.0001)
+	XDD=.0034*32.2*XD*XD*BETAINV*exp(-X/22000.)/2-32.2;
+	XD=XD+H*XDD;
+	X=X+H*XD;
+	T=T+H;
+end
+XH=X;
+XDH=XD;
+

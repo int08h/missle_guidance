@@ -1,0 +1,183 @@
+clear
+count=0;
+LEFT=1;
+QBOOST=1;
+QZERO=0;
+XISP1=300.;
+XISP2=300.;
+XMF1=.90;
+XMF2=.90;
+WPAY=100.;
+DELV=20000.;
+DELV1=.3333*DELV;
+DELV2=.6667*DELV;
+AMAX1=20.;
+AMAX2=20.;
+TOP2=WPAY*(exp(DELV2/(XISP2*32.2))-1.);
+BOT2=1/XMF2-((1.-XMF2)/XMF2)*exp(DELV2/(XISP2*32.2));
+WP2=TOP2/BOT2;
+WS2=WP2*(1-XMF2)/XMF2;
+WTOT2=WP2+WS2+WPAY;
+TRST2=AMAX2*(WPAY+WS2);
+TB2=XISP2*WP2/TRST2;
+TOP1=WTOT2*(exp(DELV1/(XISP1*32.2))-1.);
+BOT1=1/XMF1-((1.-XMF1)/XMF1)*exp(DELV1/(XISP1*32.2));
+WP1=TOP1/BOT1;
+WS1=WP1*(1-XMF1)/XMF1;
+WTOT=WP1+WS1+WTOT2;
+TRST1=AMAX1*(WTOT2+WS1);
+TB1=XISP1*WP1/TRST1;
+DELVK=DELV/1000.;
+H=.01;
+T=0.;
+S=0.;
+A=2.0926e7;
+GM=1.4077e16;
+ALTNM=0.;
+ALT=ALTNM*6076.;
+ANGDEG=30.;
+ANG=ANGDEG/57.3;
+XLONGM=ANG;
+X=(A+ALT)*cos(ANG);
+Y=(A+ALT)*sin(ANG);
+ALT=sqrt(X^2+Y^2)-A;
+X1=0.;
+Y1=0.;
+AXT=0.;
+AYT=0.;
+XLONGTDEG=45.;
+XLONGT=XLONGTDEG/57.3;
+XF=A*cos(XLONGT);
+YF=A*sin(XLONGT);
+XFIRST=XF;;
+YFIRST=YF;
+R=sqrt(X^2+Y^2);
+RF=sqrt(XFIRST^2+YFIRST^2);
+CBETA=(X*XFIRST+Y*YFIRST)/(R*RF);
+BETA=acos(CBETA);
+DISTNM=A*BETA/6076.;
+DISTINITNM=DISTNM;
+TF=500.;
+DVCAP=DELV;
+while ~(ALT<0.&T>10.)
+	XOLD=X;
+	YOLD=Y;
+	X1OLD=X1;
+	Y1OLD=Y1;
+	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+			X=X+H*XD;
+			Y=Y+H*YD;
+			X1=X1+H*X1D;
+			Y1=Y1+H*Y1D;
+			T=T+H;
+			STEP=2;
+		end
+		if T<TB1
+			WGT=-WP1*T/TB1+WTOT;
+			TRST=TRST1;
+		elseif T<(TB1+TB2)
+			WGT=-WP2*T/TB2+WTOT2+WP2*TB1/TB2;
+			TRST=TRST2;
+		else
+			WGT=WPAY;
+			TRST=0.;
+		end
+		AT=32.2*TRST/WGT;
+		XD=X1;
+		YD=Y1;
+		TEMBOT=(X^2+Y^2)^1.5;
+		X1D=-GM*X/TEMBOT+AXT;
+		Y1D=-GM*Y/TEMBOT+AYT;
+		FLAG=1;
+	end;
+	FLAG=0;
+	X=(XOLD+X)/2+.5*H*XD;
+	Y=(YOLD+Y)/2+.5*H*YD;
+	X1=(X1OLD+X1)/2+.5*H*X1D;
+	Y1=(Y1OLD+Y1)/2+.5*H*Y1D;
+	ALT=sqrt(X^2+Y^2)-A;
+	TGOLAM=TF-T;
+	DVCAP=DVCAP-H*AT;
+	if (QBOOST==1 & DVCAP>50.)
+		XLONGM=atan2(Y,X);
+		[VRXM,VRYM]=lambertpz(X,Y,TGOLAM,XF,YF,XLONGM,XLONGT);
+		VRX=VRXM;
+		VRY=VRYM;
+		DELX=VRX-X1;
+		DELY=VRY-Y1;
+		DEL=sqrt(DELX^2+DELY^2);
+		if (QZERO==0 & DVCAP>DEL)
+			THET=sqrt(6.*(1.-DEL/DVCAP));
+			DEGTHET=57.3*THET;
+		else
+			QZERO=1;
+		end
+		PHI=atan2(DELY,DELX);
+		DEGPHI=57.3*PHI;
+		if XLONGT>XLONGM
+			AXT=AT*cos(PHI-THET);
+			AYT=AT*sin(PHI-THET);
+		else
+			AXT=AT*cos(PHI+THET);
+			AYT=AT*sin(PHI+THET);
+		end
+		R=sqrt(X^2+Y^2);
+		RF=sqrt(XFIRST^2+YFIRST^2);
+		CBETA=(X*XFIRST+Y*YFIRST)/(R*RF);
+		BETA=acos(CBETA);
+		DISTNM=A*BETA/6076.;
+		DISTNM=DISTINITNM-DISTNM;
+		ALTNM=(sqrt(X^2+Y^2)-A)/6076.;
+	elseif QBOOST==1
+		[VRXM,VRYM]=lambertpz(X,Y,TGOLAM,XF,YF,XLONGM,XLONGT);
+		VRX=VRXM;
+		VRY=VRYM;
+		TRST=0.;
+		QBOOST=0;
+		AXT=0.;
+		AYT=0.;
+		X1=VRX;
+		Y1=VRY;
+		X1OLD=X1;
+		Y1OLD=Y1;
+		R=sqrt(X^2+Y^2);
+		RF=sqrt(XFIRST^2+YFIRST^2);
+		CBETA=(X*XFIRST+Y*YFIRST)/(R*RF);
+		BETA=acos(CBETA);
+		DISTNM=A*BETA/6076.;
+		DISTNM=DISTINITNM-DISTNM;
+		ALTNM=(sqrt(X^2+Y^2)-A)/6076.;
+	else
+		QBOOST=0;
+		AXT=0.;
+		AYT=0.;
+	end
+	S=S+H;
+	if S>=9.99999
+ 		S=0.;
+		R=sqrt(X^2+Y^2);
+		RF=sqrt(XFIRST^2+YFIRST^2);
+		CBETA=(X*XFIRST+Y*YFIRST)/(R*RF);
+		BETA=acos(CBETA);
+		DISTNM=A*BETA/6076.;
+		DISTNM=DISTINITNM-DISTNM;
+		ALTNM=(sqrt(X^2+Y^2)-A)/6076.;
+		count=count+1;
+		ArrayT(count)=T;
+		ArrayDISTNM(count)=DISTNM;
+		ArrayALTNM(count)=ALTNM;
+	end
+end
+figure
+plot(ArrayDISTNM,ArrayALTNM),grid
+xlabel('Downrange (Nmi)')
+ylabel('Altitude (Nmi) ')
+clc
+output=[ArrayT',ArrayDISTNM',ArrayALTNM'];
+save datfil.txt output -ascii
+disp 'simulation finished'
+% lambertpz can be found in Listing 17.2
+

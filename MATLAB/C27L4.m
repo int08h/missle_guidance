@@ -1,0 +1,196 @@
+clear
+count=0;
+XNT=96.6;
+XNP=3.;
+TF=10;
+TS=.1;
+APN=0;
+VM=3000.;
+VC=4000.;
+HEDEGF=20.;
+SIGNOISE=.001;
+TS2=TS*TS;
+TS3=TS2*TS;
+TS4=TS3*TS;
+TS5=TS4*TS;
+PHIN=XNT*XNT/TF;
+RTM=VC*TF;
+SIGPOS=RTM*SIGNOISE;
+SIGN2=SIGPOS^2;
+P11=SIGN2;
+P12=0.;
+P13=0.;
+P22=(VM*HEDEGF/57.3)^2;
+P23=0.;
+P33=XNT*XNT;
+C=0;
+for T=TS:TS:TF
+   
+	TGO=TF-T+.000001;
+	RTM=VC*TGO;
+	SIGPOS=RTM*SIGNOISE;
+	SIGN2=SIGPOS^2;
+	M11=P11+TS*P12+.5*TS2*P13+TS*(P12+TS*P22+.5*TS2*P23);
+	M11=M11+.5*TS2*(P13+TS*P23+.5*TS2*P33)+TS5*PHIN/20.;
+	M12=P12+TS*P22+.5*TS2*P23+TS*(P13+TS*P23+.5*TS2*P33)+TS4*PHIN/8.;
+	M13=P13+TS*P23+.5*TS2*P33+PHIN*TS3/6.;
+	M22=P22+TS*P23+TS*(P23+TS*P33)+PHIN*TS3/3.;
+	M23=P23+TS*P33+.5*TS2*PHIN;
+	M33=P33+PHIN*TS;
+	K1=M11/(M11+SIGN2);
+	K2=M12/(M11+SIGN2);
+	K3=M13/(M11+SIGN2);
+	P11=(1.-K1)*M11;
+	P12=(1.-K1)*M12;
+	P13=(1.-K1)*M13;
+	P22=-K2*M12+M22;
+	P23=-K2*M13+M23;
+	P33=-K3*M13+M33;
+	C=C+1;    
+	U(C)=K1;
+	V(C)=K2;
+	W(C)=K3;
+end;
+%  Modification
+% ----------------------
+ICOUNT=round((TF/TS));
+E(ICOUNT)=0;
+F(ICOUNT)=0;
+G(ICOUNT)=0;
+ICOUNT=ICOUNT-1;
+% ---------------------
+for I=1:1:ICOUNT
+ 	REV=ICOUNT-I+1;
+	E(REV)=U(I);
+	F(REV)=V(I);
+	G(REV)=W(I);
+end;
+TAP=.5;
+VC=4000.;
+T=0.;
+S=0.;
+TP=T+.00001;
+X1=0;
+X2=0;
+X3=1;
+X4=0.;
+X5=0.;
+X6=0.;
+Y1OLD=0.;
+Y2OLD=0.;
+Y3OLD=0.;
+Y4OLD=0.;
+Y5OLD=0.;
+Y6OLD=0.;
+Y7OLD=0.;
+Y7NEW=0.;
+Y6NEW=0.;
+Y8NEW=0.;
+Y4NEW=0.;
+Y1NEW=0.;
+Y2NEW=0.;
+Y3NEW=0.;
+Y5NEW=0.;
+H=.01;
+XMNT=0.;
+I=1;
+while TP <= (TF - 1e-5) 
+	X1OLD=X1;
+	X2OLD=X2;
+	X3OLD=X3;
+	X4OLD=X4;
+	X5OLD=X5;
+	X6OLD=X6;
+	STEP=1;
+	FLAG=0;
+	while STEP <=1
+		if FLAG==1
+			X1=X1+H*X1D;
+			X2=X2+H*X2D;
+			X3=X3+H*X3D;
+			X4=X4+H*X4D;
+			X5=X5+H*X5D;
+			X6=X6+H*X6D;
+			TP=TP+H;
+			STEP=2;
+		end;
+		TGO=TP;
+		X1D=X2;
+		X2D=X3+Y1NEW/(VC*TGO);
+		X3D=(Y1NEW)/(VC*TGO*TGO);
+		X4D=(X5+Y7NEW+X6)/TAP;
+		X5D=-X4D;
+		X6D=-X2;
+		FLAG=1;
+	end
+	FLAG=0;
+	X1=(X1OLD+X1)/2+.5*H*X1D;
+	X2=(X2OLD+X2)/2+.5*H*X2D;
+	X3=(X3OLD+X3)/2+.5*H*X3D;
+	X4=(X4OLD+X4)/2+.5*H*X4D;
+	X5=(X5OLD+X5)/2+.5*H*X5D;
+	X6=(X6OLD+X6)/2+.5*H*X6D;
+    S=S+H;
+	if S>(TS-.0001)
+		S=0.;
+		K1=E(I);
+		K2=F(I);
+		K3=G(I);
+        [TP I E(I) TS]
+		I=I+1;
+		if APN==0
+			C1=XNP/TP^2;
+			C2=XNP/TP;
+			C3=0.;
+			C4=0.;
+		elseif APN==1
+			C1=XNP/TP^2;
+			C2=XNP/TP;
+			C3=.5*XNP;
+			C4=0.;
+		else
+			X=TP/TAP;
+			TOP=6.*X*X*(exp(-X)-1.+X);
+			BOT1=2*X*X*X+3.+6.*X-6.*X*X;
+			BOT2=-12.*X*exp(-X)-3.*exp(-2.*X);
+			XNPP=TOP/(.0001+BOT1+BOT2);
+			C1=XNPP/TP^2;
+			C2=XNPP/TP;
+			C3=.5*XNPP;
+			C4=-XNPP*(exp(-X)+X-1.)/(X*X);
+        end
+		TEMP1=X4-Y6OLD;
+		TEMP2=C1*TEMP1+Y2OLD;
+		TEMP3=C2*TEMP1+Y3OLD;
+		TEMP4=C3*TEMP1+Y4OLD;
+		TEMP5=K1*TEMP2+K2*TEMP3+K3*TEMP4;
+		Y1NEW=Y1OLD+TEMP5*VC*TP;
+		Y2NEW=TEMP2-TEMP5;
+		Y3NEW=TEMP3+TS*Y2NEW;
+		Y4NEW=TEMP4+TS*TEMP3+.5*TS*TS*Y2NEW;
+		Y5=-(TS*TEMP3+.5*TS*TS*Y2NEW);
+		Y7NEW=Y7OLD+C4*TEMP1+Y5;
+		Y6NEW=X4;
+		XMNT=XNT*X1;
+		Y1OLD=Y1NEW;
+		Y2OLD=Y2NEW;
+		Y3OLD=Y3NEW;
+		Y4OLD=Y4NEW;
+		Y6OLD=Y6NEW;
+		Y7OLD=Y7NEW;
+        count=count+1;
+        ArrayTP(count)=TP;
+        ArrayXMNT(count)=XMNT;
+        ArrayK1(count)=K1;
+    end
+end
+figure
+plot(ArrayTP',ArrayXMNT'),grid
+title('Miss for various tgo maneuver starting times')
+xlabel('Time to go at which maneuver occurs (S)')
+ylabel('Miss (Ft) ')
+clc
+output=[ArrayTP',ArrayXMNT',ArrayK1'];
+save datfil.txt output -ascii
+disp('Simulation Complete')
+
