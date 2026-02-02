@@ -27,7 +27,7 @@ All 161 MATLAB simulations have been ported to Rust.
 * 102 Rust ports pass verification and match the MATLAB/Octave output within a 5% relative error threshold.
 * 22 Rust ports fail verification due to use of Monte Carlo and non-deterministic random numbers.
 * 16 MATLAB originals produce no output. See `NO_OUTPUT.md` for details.
-* 21 other verifications fail for various reasons. See `VERIFICATION_FAILS.md` for details.
+* 21 other verifications fail for various reasons. See `FAILURE_TRACKING.md` for details.
 
 | Status | Count | Description                        |
 |--------|-------|------------------------------------|
