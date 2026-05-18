@@ -2,6 +2,8 @@
 
 Semi-complete Rust port of the MATLAB code from "Tactical and Strategic Missile Guidance, 7th ed" by Paul Zarchan.
 
+NOTE: ported by Claude, not a human. The MATLAB vs. Rust outputs have been confirmed to be equal, and exceptions are clearly noted. Nonetheless take with grain of salt. 
+
 ## Available Simulations
 
 161 simulations from 45 chapters:
